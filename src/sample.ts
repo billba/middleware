@@ -3,13 +3,13 @@ import { Middleware } from './middleware';
 import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
 import { RegExpRecognizer, RegExpArtifact } from './regex';
+import { IgnoreAfterMidnight } from './silly';
 
 interface ConversationState {
-    dog: string;
+    time: Date;
 }
 
 interface UserState {
-    cat: number;
 }
 
 const stateManager = new StateManager<ConversationState, UserState>(new MemoryStorage());
@@ -47,5 +47,6 @@ new Bot()
 
 const botLogic = (c: Context) => {
     // bot code here
+
     return Promise.resolve(true);
 }
