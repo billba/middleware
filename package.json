@@ -11,5 +11,8 @@
     "url": "git://git@github.com/billba/middleware.git"
   },
   "author": "Bill Barnes",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^2.6.2"
+  }
 }

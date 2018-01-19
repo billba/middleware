@@ -1,50 +1,27 @@
-type TurnID = string;
+import { Request, Response } from './bot';
 
-interface Address {
-    channelID: string,
-    converationID: string,
-    userID: string
-}
+export interface Middleware <T extends {} = {}>{
+    activityWasReceived (
+        req: Request,
+        res: Response,
+        next: (req: Request, res: Response) => Promise<void>,
+        done: (req: Request, res: Response) => Promise<void>
+    ): Promise<void>;
+    
+    responseWillBeSent (
+        req: Request,
+        res: Response,
+        next: (req: Request, res: Response) => Promise<void>,
+        done: (req: Request, res: Response) => Promise<void>
+    ): Promise<void>;
 
-interface Stuff {
-    dispose: () => Promise<void>;
-}
+    forTurn (
+        req: Request,
+        res: Response
+    ): Promise<T>;
 
-abstract class Middleware <T extends Stuff> {
-    private rgt: Record<TurnID, T> = {}
-    get: (address: Address, turnID: TurnID) => Promise<T>;
-    dispose: (turnID: TurnID) => Promise<void>;
-
-    constructor(
-        get: (address: Address) => Promise<T>
-    ) {
-        this.get = (address, turnID) => {
-
-            let t = this.rgt[turnID];
-
-            return t
-                ? Promise.resolve(t)
-                : get(address)
-                    .then(t => {
-                        this.rgt[turnID] = t;
-
-                        return t;            
-                    });
-        }
-
-        this.dispose = (turnID) => {
-
-            let t = this.rgt[turnID];
-
-            if (t) {
-                t
-                    .dispose()
-                    .then(() => {
-                        delete this.rgt[turnID];
-                    })
-            }
-
-            throw new Error(`nothing there for ${turnID}`)
-        }
-    }
+    dispose (
+        req: Request,
+        res: Response
+    ): Promise<void>;
 }
