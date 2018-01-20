@@ -3,7 +3,7 @@ import { Middleware } from './middleware';
 import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
 import { RegExpRecognizer, RegExpArtifact } from './regex';
-import { IgnoreAfterMidnight } from './silly';
+import { IgnoreAfterMidnight, PutTimeInState } from './silly';
 
 interface ConversationState {
     time: Date;
@@ -30,7 +30,9 @@ interface Context {
 
 new Bot()
     .use(stateManager)
+    .use(new PutTimeInState(stateManager))
     .use(regExpRecognizer)
+    .use(new IgnoreAfterMidnight(stateManager))
     .onReceiveActivity(async (req, res) => {
         const state = await stateManager.forTurn(req, res);
         const regexp = await regExpRecognizer.forTurn(req, res);

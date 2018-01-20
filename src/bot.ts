@@ -13,9 +13,7 @@ export interface Request {
 }
 
 export interface Response {
-    responses: string[];
-
-    reply: (text: string) => Response;
+    reply: (text: string) => void;
 }
 
 export class Bot {

@@ -2,9 +2,9 @@ import { Request, Response } from './bot';
 import { MiddlewareMaker, Turn } from './middlewareMaker';
 import { StateManager, IState } from './stateManager';
 
-export class IgnoreAfterMidnight extends MiddlewareMaker {
+export class IgnoreAfterMidnight <ConversationState extends { time: Date }> extends MiddlewareMaker {
     constructor (
-        private stateManager: StateManager<{ time: Date }, {}>
+        private stateManager: StateManager<ConversationState, any>
     ) {
         super();
     }
@@ -23,9 +23,9 @@ export class IgnoreAfterMidnight extends MiddlewareMaker {
     }
 }
 
-export class PutTimeInState extends MiddlewareMaker {
+export class PutTimeInState <ConversationState extends { time: Date }> extends MiddlewareMaker {
     constructor (
-        private stateManager: StateManager<{ time: Date }, {}>
+        private stateManager: StateManager<ConversationState, any>
     ) {
         super();
     }
