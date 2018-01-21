@@ -31,9 +31,7 @@ interface Context {
     regexp: RegExpArtifact;
 }
 
-const consoleAdapter = new ConsoleAdapter();
-
-new Bot(consoleAdapter)
+new Bot(new ConsoleAdapter())
     .use(stateManager)
     .use(new PutTimeInState(stateManager))
     .use(regExpRecognizer)
@@ -47,7 +45,7 @@ new Bot(consoleAdapter)
             res,
             state,
             regexp
-        };
+        }
 
         return botLogic(context);
     });
