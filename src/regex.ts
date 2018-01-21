@@ -36,11 +36,11 @@ export class RegExpRecognizer extends MiddlewareMaker<RegExpArtifact> {
     ) {
         const re = this.res.find(re => re.regExp.test(req.text));
 
-        return Promise.resolve({
+        return {
             artifact: {
                 intent: re && re.intent
             }
-        });
+        };
     }
 }
 
