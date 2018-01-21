@@ -35,9 +35,9 @@ const consoleAdapter = new ConsoleAdapter();
 
 new Bot(consoleAdapter)
     .use(stateManager)
-    // .use(new PutTimeInState(stateManager))
+    .use(new PutTimeInState(stateManager))
     .use(regExpRecognizer)
-    // .use(new DoNotDisturb(stateManager))
+    .use(new DoNotDisturb(stateManager))
     .onReceiveActivity(async (req, res) => {
         const state = await stateManager.forTurn(req, res);
         const regexp = await regExpRecognizer.forTurn(req, res);
@@ -53,5 +53,7 @@ new Bot(consoleAdapter)
     });
 
 const botLogic = (c: Context) => {
+    if (c.regexp.intent)
+        return c.res.reply(`Intent found: ${c.regexp.intent}`);
     return c.res.reply(`hey`);
 }

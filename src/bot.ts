@@ -46,24 +46,6 @@ export class Bot {
     onReceiveActivity(handler: Handler) {
         const reversedMiddlewares = [...this.middlewares].reverse();
 
-        const activityWasReceived = (req: BotRequest, res: BotResponse) => reversedMiddlewares
-            .reduce(
-                (acc, value) => () => value.activityWasReceived(req, res, () => acc()),
-                () => toPromise(handler(req, res))
-            )();
- 
-        const middlewareWillBeDisposed = (req: BotRequest, res: BotResponse) => this.middlewares
-            .reduce(
-                (acc, value) => () => value.middlewareWillBeDisposed(req, res, () => acc()),
-                () => Promise.resolve()
-            )();
- 
-        const dispose = async (req: BotRequest, res: BotResponse) => {
-            for (let middleware of this.middlewares) {
-                await middleware.dispose(req, res);
-            }
-        }
-
         this
             .adapter
             .activity$
@@ -86,9 +68,23 @@ export class Bot {
                 } as BotResponse
             }))
             .flatMap(async ({ req, res }) => {
-                await activityWasReceived(req, res);
-                await middlewareWillBeDisposed(req, res);
-                await dispose(req, res);
+                await reversedMiddlewares
+                    .reduce(
+                        (acc, value) => () => value.activityWasReceived(req, res, () => acc()),
+                        () => toPromise(handler(req, res))
+                    )
+                    ();
+
+                await this.middlewares
+                    .reduce(
+                        (acc, value) => () => value.middlewareWillBeDisposed(req, res, () => acc()),
+                        () => Promise.resolve()
+                    )
+                    ();
+
+                for (let middleware of this.middlewares) {
+                    await middleware.dispose(req, res);
+                }
             })
             .subscribe();
     }
