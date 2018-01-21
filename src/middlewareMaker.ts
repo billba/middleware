@@ -1,4 +1,4 @@
-import { Request, Response } from './bot';
+import { BotRequest, BotResponse, toPromise } from './bot';
 import { Middleware } from "./middleware";
 import { TurnID } from "./bot";
 
@@ -7,23 +7,19 @@ export interface Turn<T> {
     dispose: () => Promise<void>;
 }
 
-export class MiddlewareMaker <T extends {} = {}> implements Middleware<T> {
+export abstract class MiddlewareMaker <T extends {} = {}> implements Partial<Middleware<T>> {
     private turns: Record<TurnID, Turn<T>> = {};
 
     constructor() {
-
     }
 
     private normalizedGetTurn (
-        req: Request,
-        res: Response
+        req: BotRequest,
+        res: BotResponse
     ): Promise<Turn<T>> {
         const t = this.getTurn(req, res);
 
-        return (t instanceof Promise
-            ? t
-            : Promise.resolve(t)
-        )
+        return toPromise(t)
             .then(turn => ({
                 artifact: turn.artifact || {} as T,
                 dispose: turn.dispose || (() => Promise.resolve())
@@ -33,8 +29,8 @@ export class MiddlewareMaker <T extends {} = {}> implements Middleware<T> {
     // do not override
 
     public forTurn (
-        req: Request,
-        res: Response
+        req: BotRequest,
+        res: BotResponse
     ): Promise<T> {
         let t = this.turns[req.turnID];
 
@@ -51,9 +47,9 @@ export class MiddlewareMaker <T extends {} = {}> implements Middleware<T> {
 
     // do not override
 
-    dispose (
-        req: Request,
-        res: Response
+    public dispose (
+        req: BotRequest,
+        res: BotResponse
     ): Promise<void> {
         let turn = this.turns[req.turnID];
 
@@ -67,29 +63,27 @@ export class MiddlewareMaker <T extends {} = {}> implements Middleware<T> {
             });
     }
 
-    // Override any of the below
+    // Override any or all of the below
 
     public activityWasReceived (
-        req: Request,
-        res: Response,
-        next: (req: Request, res: Response) => Promise<void>,
-        done: (req: Request, res: Response) => Promise<void>
-    ): Promise<void> {
-        return Promise.resolve();
+        req: BotRequest,
+        res: BotResponse,
+        next: () => Promise<void>,
+    ) {
+        return next();
     }
 
-    public responseWillBeSent (
-        req: Request,
-        res: Response,
-        next: (req: Request, res: Response) => Promise<void>,
-        done: (req: Request, res: Response) => Promise<void>
-    ): Promise<void> {
-        return Promise.resolve();
+    public middlewareWillBeDisposed (
+        req: BotRequest,
+        res: BotResponse,
+        next: () => Promise<void>,
+    ) {
+        return next();
     }
 
     protected getTurn (
-        req: Request,
-        res: Response,
+        req: BotRequest,
+        res: BotResponse,
     ): Partial<Turn<T>> | Promise<Partial<Turn<T>>> {
         return {}
     }

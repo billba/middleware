@@ -2,8 +2,11 @@
   "name": "middleware",
   "version": "0.1.0",
   "description": "experimental approach to bot middleware",
-  "main": "index.js",
+  "main": "dist/sample.js",
   "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "start": "nodemon dist/sample.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -13,6 +16,11 @@
   "author": "Bill Barnes",
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^9.3.0",
+    "nodemon": "^1.14.11",
     "typescript": "^2.6.2"
+  },
+  "dependencies": {
+    "rxjs": "^5.5.6"
   }
 }

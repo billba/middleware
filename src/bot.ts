@@ -1,35 +1,95 @@
-import { Middleware } from './middleware';
+import { Middleware, normalizeMiddleware } from './middleware';
+import { Observable } from 'rxjs';
+
+export const toPromise = <T> (t: T | Promise<T>) => t instanceof Promise ? t : Promise.resolve(t);
 
 export type TurnID = string;
 
-export interface Request {
+export interface Activity {
     channelID: string;
     conversationID: string;
     userID: string;
-
-    turnID: TurnID;
-
+    
+    type: 'message';
     text: string;
 }
 
-export interface Response {
-    reply: (text: string) => void;
+export interface BotRequest extends Activity{
+    turnID: TurnID;
+}
+
+export interface BotResponse {
+    reply: (text: string) => Promise<void>;
+}
+
+export type Handler = (req: BotRequest, res: BotResponse) => (any | Promise<any>);
+
+export interface Adapter {
+    activity$: Observable<Activity>;
+    postActivity$: (activity: Activity) => Observable<string>;
 }
 
 export class Bot {
-    middlewares: Middleware[] = [];
+    private middlewares: Middleware[] = [];
 
-    constructor() {
+    constructor(
+        private adapter: Adapter
+    ) {
     }
 
-    use <M extends Middleware> (middleware: M) {
+    use (middleware: Partial<Middleware>) {
+        this.middlewares.push(normalizeMiddleware(middleware));
+
         return this;
     }
 
-    onReceiveActivity(handler: (req: Request, res: Response) => (any | Promise<any>)) {
-        // go through all activityWasReceived middleware
-        // run handler
-        // go through all responseWillBeSent middleware
-        // go through all 
+    onReceiveActivity(handler: Handler) {
+        const reversedMiddlewares = [...this.middlewares].reverse();
+
+        const activityWasReceived = (req: BotRequest, res: BotResponse) => reversedMiddlewares
+            .reduce(
+                (acc, value) => () => value.activityWasReceived(req, res, () => acc()),
+                () => toPromise(handler(req, res))
+            )();
+ 
+        const middlewareWillBeDisposed = (req: BotRequest, res: BotResponse) => this.middlewares
+            .reduce(
+                (acc, value) => () => value.middlewareWillBeDisposed(req, res, () => acc()),
+                () => Promise.resolve()
+            )();
+ 
+        const dispose = async (req: BotRequest, res: BotResponse) => {
+            for (let middleware of this.middlewares) {
+                await middleware.dispose(req, res);
+            }
+        }
+
+        this
+            .adapter
+            .activity$
+            .map(activity => ({
+                req: {
+                    ... activity,
+                    turnID: `${activity.channelID}.${activity.conversationID}.${activity.userID}.${Date.now().toString()}`
+                } as BotRequest,
+
+                res: {
+                    reply: (text: string) => Observable
+                        .of(text)
+                        .map(text => ({
+                            ... activity,
+                            text
+                        } as Activity))
+                        .flatMap(activity => this.adapter.postActivity$(activity))
+                        .map(result => {})
+                        .toPromise()
+                } as BotResponse
+            }))
+            .flatMap(async ({ req, res }) => {
+                await activityWasReceived(req, res);
+                await middlewareWillBeDisposed(req, res);
+                await dispose(req, res);
+            })
+            .subscribe();
     }
 }

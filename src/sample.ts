@@ -1,12 +1,15 @@
-import { Bot, Request, Response } from './bot';
+import { Bot, BotRequest, BotResponse } from './bot';
 import { Middleware } from './middleware';
 import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
 import { RegExpRecognizer, RegExpArtifact } from './regex';
-import { IgnoreAfterMidnight, PutTimeInState } from './silly';
+import { DoNotDisturb, PutTimeInState } from './time';
+import { ConsoleAdapter } from './consoleAdapter';
+import { CachedResponse, CachedResponseMW } from './cachedResponse';
 
 interface ConversationState {
     time: Date;
+    count: number;
 }
 
 interface UserState {
@@ -22,17 +25,19 @@ const regExpRecognizer = new RegExpRecognizer()
     .add(/help|aid|assistance|911/i, 'help');
 
 interface Context {
-    req: Request;
-    res: Response;
+    req: BotRequest;
+    res: BotResponse;
     state: IState<ConversationState, UserState>;
     regexp: RegExpArtifact;
 }
 
-new Bot()
+const consoleAdapter = new ConsoleAdapter();
+
+new Bot(consoleAdapter)
     .use(stateManager)
-    .use(new PutTimeInState(stateManager))
+    // .use(new PutTimeInState(stateManager))
     .use(regExpRecognizer)
-    .use(new IgnoreAfterMidnight(stateManager))
+    // .use(new DoNotDisturb(stateManager))
     .onReceiveActivity(async (req, res) => {
         const state = await stateManager.forTurn(req, res);
         const regexp = await regExpRecognizer.forTurn(req, res);
@@ -48,7 +53,5 @@ new Bot()
     });
 
 const botLogic = (c: Context) => {
-    // bot code here
-
-    return Promise.resolve(true);
+    return c.res.reply(`hey`);
 }

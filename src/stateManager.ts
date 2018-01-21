@@ -1,4 +1,4 @@
-import { Request, Response } from './bot';
+import { BotRequest, BotResponse } from './bot';
 import { MiddlewareMaker, Turn } from './middlewareMaker';
 import { IStorage } from './storage';
 
@@ -14,13 +14,13 @@ export class StateManager <Conversation = any, User = any> extends MiddlewareMak
         super();
     }
 
-    private static keyFromRequest(req: Request) {
+    private static keyFromRequest(req: BotRequest) {
         return `${req.channelID}.${req.conversationID}.${req.userID}`;
     }
 
     getTurn(
-        req: Request,
-        res: Response
+        req: BotRequest,
+        res: BotResponse
     ) {
         const artifact: IState<Conversation, User> = this.storage.get(StateManager.keyFromRequest(req)) || {
             conversation: {},
@@ -29,10 +29,10 @@ export class StateManager <Conversation = any, User = any> extends MiddlewareMak
 
         return {
             artifact,
-            dispose() {
+            dispose: () => {
                 this.storage.set(StateManager.keyFromRequest(req), artifact);
                 return Promise.resolve();
             }
-        };
+        }
     }
 }

@@ -1,4 +1,4 @@
-import { Request, Response } from './bot';
+import { BotRequest, BotResponse } from './bot';
 import { MiddlewareMaker, Turn } from './middlewareMaker';
 import { IStorage } from './storage';
 
@@ -31,8 +31,8 @@ export class RegExpRecognizer extends MiddlewareMaker<RegExpArtifact> {
     }
 
     getTurn (
-        req: Request,
-        res: Response
+        req: BotRequest,
+        res: BotResponse
     ) {
         const re = this.res.find(re => re.regExp.test(req.text));
 
