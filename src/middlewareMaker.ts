@@ -17,9 +17,7 @@ export abstract class MiddlewareMaker <T extends {} = {}> implements Partial<Mid
         req: BotRequest,
         res: BotResponse
     ): Promise<Turn<T>> {
-        const t = this.getTurn(req, res);
-
-        return toPromise(t)
+        return toPromise(this.getTurn(req, res))
             .then(turn => ({
                 artifact: turn.artifact || {} as T,
                 dispose: turn.dispose || (() => Promise.resolve())
@@ -32,16 +30,16 @@ export abstract class MiddlewareMaker <T extends {} = {}> implements Partial<Mid
         req: BotRequest,
         res: BotResponse
     ): Promise<T> {
-        let t = this.turns[req.turnID];
+        let turn = this.turns[req.turnID];
 
-        return t
-            ? Promise.resolve(t.artifact)
+        return turn
+            ? Promise.resolve(turn.artifact)
             : this
                 .normalizedGetTurn(req, res)
-                .then(t => {
-                    this.turns[req.turnID] = t;
+                .then(turn => {
+                    this.turns[req.turnID] = turn;
 
-                    return t.artifact;        
+                    return turn.artifact;        
                 });
     }
 
