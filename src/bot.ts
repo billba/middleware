@@ -1,7 +1,9 @@
 import { Middleware, normalizeMiddleware } from './middleware';
 import { Observable } from 'rxjs';
 
-export const toPromise = <T> (t: T | Promise<T>) => t instanceof Promise ? t : Promise.resolve(t);
+export type Promiseable <T> = T | Promise<T>;
+
+export const toPromise = <T> (t: Promiseable<T>) => t instanceof Promise ? t : Promise.resolve(t);
 
 export type TurnID = string;
 

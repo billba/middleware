@@ -44,7 +44,7 @@ export const defaultMiddleware: Middleware = {
     }
 }
 
-export function normalizeMiddleware <T extends {} = {}> (middleware: Partial<Middleware<T>>) {
+export function normalizeMiddleware <T extends {} = {}> (middleware: Partial<Middleware<T>>): Middleware<T> {
     return middleware.activityWasReceived && middleware.middlewareWillBeDisposed && middleware.forTurn && middleware.dispose
         ? middleware as Middleware<T>
         : { 

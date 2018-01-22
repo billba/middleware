@@ -23,7 +23,7 @@ export class ConsoleAdapter implements Adapter {
     activity$ = new Subject<Activity>();
 
     postActivity$ (activity: Activity) {
-        console.log(activity.text);
+        console.log("| ", activity.text);
         return Observable.of("success");
     }
 }
