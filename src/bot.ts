@@ -89,8 +89,6 @@ export class EndTurn {
             .map(activity => getReqRes(this.adapter, activity))
             .flatMap(async ({ req, res }) => {
 
-                // A -> [B -> [C -> [ D -> [handler] -> D ] -> C] -> B] -> A
-
                 await reversedMiddlewares
                     .reduce(
                         (next: () => Promise<void>, middleware) => () => middleware(req, res, next),

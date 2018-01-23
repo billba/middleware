@@ -18,7 +18,6 @@ export class StateManager <Conversation = any, User = any> extends TurnDI<IState
         return `${req.channelID}.${req.conversationID}.${req.userID}`;
     }
 
-
     get (
         req: BotRequest
     ) {

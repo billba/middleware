@@ -47,7 +47,6 @@ new Bot(new ConsoleAdapter())
         regExpRecognizer.dispose(req);
     });
 
-
 const getContext = async (req: BotRequest, res: BotResponse): Promise<Context> => {
     const state = await stateManager.get(req);
     const intent = await regExpRecognizer.get(req);
