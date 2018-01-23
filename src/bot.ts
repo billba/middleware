@@ -31,6 +31,28 @@ export interface Adapter {
     postActivity$: (activity: Activity) => Observable<string>;
 }
 
+const getReqRes = (
+    adapter: Adapter,
+    activity: Activity
+) => ({
+    req: {
+        ... activity,
+        turnID: `${activity.channelID}.${activity.conversationID}.${activity.userID}.${Date.now().toString()}`
+    } as BotRequest,
+
+    res: {
+        reply: (text: string) => Observable
+            .of(text)
+            .map(text => ({
+                ... activity,
+                text
+            } as Activity))
+            .flatMap(activity => adapter.postActivity$(activity))
+            .map(result => {})
+            .toPromise()
+    } as BotResponse
+});
+
 export class Bot {
     private middlewares: Middleware[] = [];
 
@@ -46,47 +68,41 @@ export class Bot {
     }
 
     onReceiveActivity(handler: Handler) {
+        return new EndTurn(this.adapter, this.middlewares, handler);
+    }
+}
+
+export class EndTurn {
+    constructor(
+        private adapter: Adapter,
+        private middlewares: Middleware[],
+        private onReceiveActivityHandler: Handler
+    ) {
+    }
+
+    endTurn(handler: Handler) {
         const reversedMiddlewares = [...this.middlewares].reverse();
 
         this
             .adapter
             .activity$
-            .map(activity => ({
-                req: {
-                    ... activity,
-                    turnID: `${activity.channelID}.${activity.conversationID}.${activity.userID}.${Date.now().toString()}`
-                } as BotRequest,
-
-                res: {
-                    reply: (text: string) => Observable
-                        .of(text)
-                        .map(text => ({
-                            ... activity,
-                            text
-                        } as Activity))
-                        .flatMap(activity => this.adapter.postActivity$(activity))
-                        .map(result => {})
-                        .toPromise()
-                } as BotResponse
-            }))
+            .map(activity => getReqRes(this.adapter, activity))
             .flatMap(async ({ req, res }) => {
                 await reversedMiddlewares
                     .reduce(
                         (acc, value) => () => value.activityWasReceived(req, res, () => acc()),
-                        () => toPromise(handler(req, res))
+                        () => toPromise(this.onReceiveActivityHandler(req, res))
                     )
                     ();
 
                 await this.middlewares
                     .reduce(
-                        (acc, value) => () => value.middlewareWillBeDisposed(req, res, () => acc()),
+                        (acc, value) => () => value.turnWillEnd(req, res, () => acc()),
                         () => Promise.resolve()
                     )
                     ();
 
-                for (let middleware of this.middlewares) {
-                    await middleware.dispose(req, res);
-                }
+                await toPromise(handler(req, res));
             })
             .subscribe();
     }

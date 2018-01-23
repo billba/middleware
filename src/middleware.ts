@@ -1,26 +1,16 @@
 import { BotRequest, BotResponse } from './bot';
 
-export interface Middleware <T extends {} = {}>{
+export interface Middleware {
     activityWasReceived (
         req: BotRequest,
         res: BotResponse,
         next: () => Promise<void>,
     ): Promise<void>;
     
-    middlewareWillBeDisposed (
+    turnWillEnd (
         req: BotRequest,
         res: BotResponse,
         next: () => Promise<void>,
-    ): Promise<void>;
-
-    forTurn (
-        req: BotRequest,
-        res: BotResponse
-    ): Promise<T>;
-
-    dispose (
-        req: BotRequest,
-        res: BotResponse
     ): Promise<void>;
 }
 
@@ -29,39 +19,21 @@ export const defaultMiddleware: Middleware = {
         return next();
     },
 
-    middlewareWillBeDisposed (req, res, next) {
+    turnWillEnd (req, res, next) {
         return next();
-    },
-
-    forTurn (req, res) {
-        return Promise.resolve({
-            artifact: {}
-        });
-    },
-
-    dispose (req, res) {
-        return Promise.resolve();
     }
 }
 
-export function normalizeMiddleware <T extends {} = {}> (middleware: Partial<Middleware<T>>): Middleware<T> {
-    return middleware.activityWasReceived && middleware.middlewareWillBeDisposed && middleware.forTurn && middleware.dispose
-        ? middleware as Middleware<T>
+export function normalizeMiddleware (middleware: Partial<Middleware>): Middleware {
+    return middleware.activityWasReceived && middleware.turnWillEnd
+        ? middleware as Middleware
         : { 
             activityWasReceived: middleware.activityWasReceived
                 ? (req, res, next) => middleware.activityWasReceived(req, res, next)
                 : defaultMiddleware.activityWasReceived,
 
-            middlewareWillBeDisposed: middleware.middlewareWillBeDisposed
-                ? (req, res, next) => middleware.middlewareWillBeDisposed(req, res, next)
-                : defaultMiddleware.middlewareWillBeDisposed,
-
-            forTurn: middleware.forTurn
-                ? (req, res) => middleware.forTurn(req, res)
-                : defaultMiddleware.forTurn,
-
-            dispose: middleware.dispose
-                ? (req, res) => middleware.dispose(req, res)
-                : defaultMiddleware.dispose,
-        } as Middleware<T>;
+            turnWillEnd: middleware.turnWillEnd
+                ? (req, res, next) => middleware.turnWillEnd(req, res, next)
+                : defaultMiddleware.turnWillEnd
+        }
 }

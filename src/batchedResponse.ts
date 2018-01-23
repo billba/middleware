@@ -1,8 +1,8 @@
 import { BotRequest, BotResponse, Activity } from './bot';
-import { MiddlewareMaker, Turn } from './middlewareMaker';
+import { TurnDI } from './TurnDI';
 import { IStorage } from './storage';
 
-export class CachedResponse {
+export class BatchedResponse {
     constructor (
         private res: BotResponse
     ) {
@@ -25,22 +25,30 @@ export class CachedResponse {
     }
 }
 
-export class CachedResponseMW extends MiddlewareMaker<CachedResponse> {
+export class BatchedResponseMaker extends TurnDI<BatchedResponse> {
     constructor () {
         super();
     }
 
-    getTurn(
+    get (
         req: BotRequest,
         res: BotResponse
     ) {
-        const artifact = new CachedResponse(res);
+        return this._get(req.turnID, () => {
+            const artifact = new BatchedResponse(res);
 
-        return {
-            artifact,
-            dispose() {
-                return artifact.flushResponses();
-            }
-        }
+            return {
+                artifact,
+                dispose() {
+                    return artifact.flushResponses();
+                }
+            }    
+        })
+    }
+
+    dispose (
+        req: BotRequest
+    ) {
+        return this._dispose(req.turnID)
     }
 }

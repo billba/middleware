@@ -2,10 +2,11 @@ import { Bot, BotRequest, BotResponse } from './bot';
 import { Middleware } from './middleware';
 import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
-import { RegExpRecognizer, RegExpArtifact } from './regex';
+import { RegExpRecognizer } from './regex';
 import { DoNotDisturb, PutTimeInState, DoNotDisturb2 } from './time';
 import { ConsoleAdapter } from './consoleAdapter';
-import { CachedResponse, CachedResponseMW } from './cachedResponse';
+import { BatchedResponse, BatchedResponseMaker } from './batchedResponse';
+import { basename } from 'path';
 
 interface ConversationState {
     time: Date;
@@ -32,35 +33,37 @@ interface Context {
     req: BotRequest;
     res: BotResponse;
     state: IState<ConversationState, UserState>;
-    regexp: RegExpArtifact;
+    intent: string;
 }
 
-const cachedResponse = new CachedResponseMW();
+new Bot(new ConsoleAdapter())
+    .use(putTimeInState)
+    .use(doNotDisturb)
+    // runs all 'activityWasReceived' middleware here
+    .onReceiveActivity(async (req, res) => 
+        botLogic(await getContext(req, res))
+    )
+    // runs all 'turnWillEnd' middleware here
+    .endTurn((req, res) => {
+        stateManager.dispose(req);
+        regExpRecognizer.dispose(req);
+    });
+
 
 const getContext = async (req: BotRequest, res: BotResponse): Promise<Context> => {
-    const state = await stateManager.forTurn(req, res);
-    const regexp = await regExpRecognizer.forTurn(req, res);
+    const state = await stateManager.get(req);
+    const intent = await regExpRecognizer.get(req);
 
     return {
         req,
         res,
         state,
-        regexp
+        intent,
     }
 }
 
-new Bot(new ConsoleAdapter())
-    .use(stateManager)
-    .use(putTimeInState)
-    .use(regExpRecognizer)
-    .use(doNotDisturb)
-    .onReceiveActivity(async (req, res) => 
-        botLogic(await getContext(req, res))
-    )
-
-const botLogic = (c: Context) => {
-
-    if (c.regexp.intent)
-        return c.res.reply(`Intent found: ${c.regexp.intent}`);
+const botLogic = async (c: Context) => {
+    if (c.intent)
+        return c.res.reply(`Intent found: ${c.intent}`);
     return c.res.reply(`hey`);
 }

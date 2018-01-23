@@ -1,5 +1,5 @@
-import { BotRequest, BotResponse } from './bot';
-import { MiddlewareMaker, Turn } from './middlewareMaker';
+import { BotRequest, BotResponse, TurnID } from './bot';
+import { TurnDI, Turn } from './TurnDI';
 import { IStorage } from './storage';
 
 export interface RegExpArtifact {
@@ -11,7 +11,7 @@ interface RE {
     intent: string;
 }
 
-export class RegExpRecognizer extends MiddlewareMaker<RegExpArtifact> {
+export class RegExpRecognizer extends TurnDI<string> {
     private res: RE[] = [];
 
     constructor() {
@@ -30,17 +30,21 @@ export class RegExpRecognizer extends MiddlewareMaker<RegExpArtifact> {
         return this;
     }
 
-    getTurn (
-        req: BotRequest,
-        res: BotResponse
+    get (
+        req: BotRequest
     ) {
-        const re = this.res.find(re => re.regExp.test(req.text));
+        return this._get(req.turnID, () => {
+            const re = this.res.find(re => re.regExp.test(req.text));
 
-        return {
-            artifact: {
-                intent: re && re.intent
+            return {
+                artifact: re && re.intent
             }
-        };
+        });
+    }
+
+    dispose (
+        req: BotRequest
+    ) {
+        return this._dispose(req.turnID);
     }
 }
-

@@ -1,16 +1,15 @@
 import { BotRequest, BotResponse, Promiseable, toPromise } from './bot';
-import { MiddlewareMaker } from './middlewareMaker';
 import { StateManager } from './stateManager';
+import { Middleware } from './middleware';
 
 export interface TimeState {
     time: Date
 }
 
-export class PutTimeInState <ConversationState extends TimeState> extends MiddlewareMaker {
+export class PutTimeInState <ConversationState extends TimeState> implements Partial<Middleware> {
     constructor (
         private stateManager: StateManager<ConversationState, any>
     ) {
-        super();
     }
 
     async activityWasReceived (
@@ -18,7 +17,7 @@ export class PutTimeInState <ConversationState extends TimeState> extends Middle
         res: BotResponse,
         next: () => Promise<void>
     ) {
-        const state = await this.stateManager.forTurn(req, res);
+        const state = await this.stateManager.get(req);
 
         state.conversation.time = new Date();
 
@@ -27,11 +26,10 @@ export class PutTimeInState <ConversationState extends TimeState> extends Middle
 }
 
 
-export class DoNotDisturb <ConversationState extends TimeState> extends MiddlewareMaker {
+export class DoNotDisturb <ConversationState extends TimeState> implements Partial<Middleware> {
     constructor (
         private stateManager: StateManager<ConversationState, any>
     ) {
-        super();
     }
 
     async activityWasReceived (
@@ -39,7 +37,7 @@ export class DoNotDisturb <ConversationState extends TimeState> extends Middlewa
         res: BotResponse,
         next: () => Promise<void>,
     ) {
-        const state = await this.stateManager.forTurn(req, res);
+        const state = await this.stateManager.get(req);
         const hours = state.conversation.time.getHours();
         
         return hours >= 9 && hours <= 17
@@ -50,19 +48,10 @@ export class DoNotDisturb <ConversationState extends TimeState> extends Middlewa
 
 
 
-// const doNotDisturb = new DoNotDisturb2(async (req, res) => {
-//     const state = await stateManager.forTurn(req, res);
-//     const hours = state.conversation.time.getHours();
-    
-//     return hours >= 9 && hours <= 17;
-// });
-
-
-export class DoNotDisturb2 extends MiddlewareMaker {
+export class DoNotDisturb2 implements Partial<Middleware> {
     constructor (
         private predicate: (req: BotRequest, res: BotResponse) => Promiseable<boolean>
     ) {
-        super();
     }
 
     async activityWasReceived (
@@ -75,3 +64,11 @@ export class DoNotDisturb2 extends MiddlewareMaker {
             : res.reply("Sorry, we're closed.");
     }
 }
+
+// const doNotDisturb = new DoNotDisturb2(async (req, res) => {
+//     const state = await stateManager.get(req);
+//     const hours = state.conversation.time.getHours();
+    
+//     return hours >= 9 && hours <= 17;
+// });
+
