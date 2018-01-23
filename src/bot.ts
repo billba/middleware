@@ -68,36 +68,19 @@ export class Bot {
     }
 
     onReceiveActivity(handler: Handler) {
-        return new EndTurn(this.adapter, this.middlewares, handler);
-    }
-}
-
-export class EndTurn {
-    constructor(
-        private adapter: Adapter,
-        private middlewares: Middleware[],
-        private onReceiveActivityHandler: Handler
-    ) {
-    }
-
-    endTurn(handler: Handler) {
         const reversedMiddlewares = [...this.middlewares].reverse();
 
         this
             .adapter
             .activity$
             .map(activity => getReqRes(this.adapter, activity))
-            .flatMap(async ({ req, res }) => {
-
-                await reversedMiddlewares
-                    .reduce(
-                        (next: () => Promise<void>, middleware) => () => middleware(req, res, next),
-                        () => toPromise(this.onReceiveActivityHandler(req, res))
-                    )
-                    ();
-
-                await toPromise(handler(req, res));
-            })
+            .flatMap(({ req, res }) => reversedMiddlewares
+                .reduce(
+                    (next, middleware) => () => middleware(req, res, next),
+                    () => toPromise(handler(req, res))
+                )
+                ()
+            )
             .subscribe();
     }
 }

@@ -1,4 +1,4 @@
-import { Bot, BotRequest, BotResponse } from './bot';
+import { Bot, BotRequest, BotResponse, Promiseable } from './bot';
 import { Middleware } from './middleware';
 import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
@@ -26,44 +26,52 @@ const regExpRecognizer = new RegExpRecognizer()
     .add(/Goodbye|Farewell|Adieu|Aloha/i, 'farewell')
     .add(/help|aid|assistance|911/i, 'help');
 
-interface Context {
-    req: BotRequest;
-    res: BotResponse;
-    state: IState<ConversationState, UserState>;
-    intent: string;
+const atEndOfTurn = (
+    handler: (req: BotRequest, res: BotResponse) => Promiseable<any>
+): Middleware => async (req, res, next) => {
+    await next();
+    await handler(req, res);
 }
 
 new Bot(new ConsoleAdapter())
+    .use(atEndOfTurn((req, res) => {
+        stateManager.dispose(req);
+        regExpRecognizer.dispose(req);
+    }))
     .use(putTimeInState(stateManager))
     .use(doNotDisturb(stateManager))
     .use(yoify)
-    // runs incoming middleware here
-    .onReceiveActivity(async (req, res) => 
-        botLogic(await getContext(req, res))
-    )
-    // runs outgoing middleware here
-    .endTurn((req, res) => {
-        stateManager.dispose(req);
-        regExpRecognizer.dispose(req);
+    .onReceiveActivity(async (req, res) => {
+        await res.reply("hey");
     });
 
-const getContext = async (req: BotRequest, res: BotResponse): Promise<Context> => {
-    const state = await stateManager.get(req);
-    const intent = await regExpRecognizer.get(req);
 
-    return {
-        req,
-        res,
-        state,
-        intent,
-    }
-}
+// return botLogic(await getContext(req, res));
 
-const botLogic = async (c: Context) => {
-    if (c.intent)
-        return c.res.reply(`Intent found: ${c.intent}`);
-    return c.res.reply(`hey`);
-}
+// interface Context {
+//     req: BotRequest;
+//     res: BotResponse;
+//     state: IState<ConversationState, UserState>;
+//     intent: string;
+// }
+
+// const getContext = async (req: BotRequest, res: BotResponse): Promise<Context> => {
+//     const state = await stateManager.get(req);
+//     const intent = await regExpRecognizer.get(req);
+
+//     return {
+//         req,
+//         res,
+//         state,
+//         intent,
+//     }
+// }
+
+// const botLogic = async (c: Context) => {
+//     if (c.intent)
+//         return c.res.reply(`Intent found: ${c.intent}`);
+//     return c.res.reply(`hey`);
+// }
 
 
 // .use(doNotDisturb2(async (req, res) => {
