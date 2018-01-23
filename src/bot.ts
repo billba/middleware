@@ -1,4 +1,4 @@
-import { Middleware, normalizeMiddleware } from './middleware';
+import { Middleware } from './middleware';
 import { Observable } from 'rxjs';
 
 export type Promiseable <T> = T | Promise<T>;
@@ -61,8 +61,8 @@ export class Bot {
     ) {
     }
 
-    use (middleware: Partial<Middleware>) {
-        this.middlewares.push(normalizeMiddleware(middleware));
+    use (middleware: Middleware) {
+        this.middlewares.push(middleware);
 
         return this;
     }
@@ -88,17 +88,13 @@ export class EndTurn {
             .activity$
             .map(activity => getReqRes(this.adapter, activity))
             .flatMap(async ({ req, res }) => {
+
+                // A -> [B -> [C -> [ D -> [handler] -> D ] -> C] -> B] -> A
+
                 await reversedMiddlewares
                     .reduce(
-                        (acc, value) => () => value.activityWasReceived(req, res, () => acc()),
+                        (next: () => Promise<void>, middleware) => () => middleware(req, res, next),
                         () => toPromise(this.onReceiveActivityHandler(req, res))
-                    )
-                    ();
-
-                await this.middlewares
-                    .reduce(
-                        (acc, value) => () => value.turnWillEnd(req, res, () => acc()),
-                        () => Promise.resolve()
                     )
                     ();
 

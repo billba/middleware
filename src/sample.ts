@@ -3,10 +3,11 @@ import { Middleware } from './middleware';
 import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
 import { RegExpRecognizer } from './regex';
-import { DoNotDisturb, PutTimeInState, DoNotDisturb2 } from './time';
+import { putTimeInState, doNotDisturb, doNotDisturb2 } from './time';
 import { ConsoleAdapter } from './consoleAdapter';
 import { BatchedResponse, BatchedResponseMaker } from './batchedResponse';
 import { basename } from 'path';
+import { yoify } from './yoify';
 
 interface ConversationState {
     time: Date;
@@ -25,10 +26,6 @@ const regExpRecognizer = new RegExpRecognizer()
     .add(/Goodbye|Farewell|Adieu|Aloha/i, 'farewell')
     .add(/help|aid|assistance|911/i, 'help');
 
-const putTimeInState = new PutTimeInState(stateManager);
-
-const doNotDisturb = new DoNotDisturb(stateManager);
-
 interface Context {
     req: BotRequest;
     res: BotResponse;
@@ -37,13 +34,14 @@ interface Context {
 }
 
 new Bot(new ConsoleAdapter())
-    .use(putTimeInState)
-    .use(doNotDisturb)
-    // runs all 'activityWasReceived' middleware here
+    .use(putTimeInState(stateManager))
+    .use(doNotDisturb(stateManager))
+    .use(yoify)
+    // runs incoming middleware here
     .onReceiveActivity(async (req, res) => 
         botLogic(await getContext(req, res))
     )
-    // runs all 'turnWillEnd' middleware here
+    // runs outgoing middleware here
     .endTurn((req, res) => {
         stateManager.dispose(req);
         regExpRecognizer.dispose(req);
@@ -67,3 +65,11 @@ const botLogic = async (c: Context) => {
         return c.res.reply(`Intent found: ${c.intent}`);
     return c.res.reply(`hey`);
 }
+
+
+// .use(doNotDisturb2(async (req, res) => {
+//     const state = await stateManager.get(req);
+//     const hours = state.conversation.time.getHours();
+    
+//     return hours >= 8 && hours <= 17;
+// }))
