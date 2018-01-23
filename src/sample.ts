@@ -3,7 +3,7 @@ import { Middleware } from './middleware';
 import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
 import { RegExpRecognizer, RegExpArtifact } from './regex';
-import { DoNotDisturb, PutTimeInState } from './time';
+import { DoNotDisturb, PutTimeInState, DoNotDisturb2 } from './time';
 import { ConsoleAdapter } from './consoleAdapter';
 import { CachedResponse, CachedResponseMW } from './cachedResponse';
 
@@ -24,6 +24,10 @@ const regExpRecognizer = new RegExpRecognizer()
     .add(/Goodbye|Farewell|Adieu|Aloha/i, 'farewell')
     .add(/help|aid|assistance|911/i, 'help');
 
+const putTimeInState = new PutTimeInState(stateManager);
+
+const doNotDisturb = new DoNotDisturb(stateManager);
+
 interface Context {
     req: BotRequest;
     res: BotResponse;
@@ -31,26 +35,31 @@ interface Context {
     regexp: RegExpArtifact;
 }
 
+const cachedResponse = new CachedResponseMW();
+
+const getContext = async (req: BotRequest, res: BotResponse): Promise<Context> => {
+    const state = await stateManager.forTurn(req, res);
+    const regexp = await regExpRecognizer.forTurn(req, res);
+
+    return {
+        req,
+        res,
+        state,
+        regexp
+    }
+}
+
 new Bot(new ConsoleAdapter())
     .use(stateManager)
-    .use(new PutTimeInState(stateManager))
+    .use(putTimeInState)
     .use(regExpRecognizer)
-    .use(new DoNotDisturb(stateManager))
-    .onReceiveActivity(async (req, res) => {
-        const state = await stateManager.forTurn(req, res);
-        const regexp = await regExpRecognizer.forTurn(req, res);
-
-        const context: Context = {
-            req,
-            res,
-            state,
-            regexp
-        }
-
-        return botLogic(context);
-    });
+    .use(doNotDisturb)
+    .onReceiveActivity(async (req, res) => 
+        botLogic(await getContext(req, res))
+    )
 
 const botLogic = (c: Context) => {
+
     if (c.regexp.intent)
         return c.res.reply(`Intent found: ${c.regexp.intent}`);
     return c.res.reply(`hey`);
