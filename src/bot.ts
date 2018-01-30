@@ -19,34 +19,24 @@ export interface BotResponse {
 
 export type Handler = (req: BotRequest, res: BotResponse) => (any | Promise<any>);
 
-const getReqRes = (
-    adapter: Adapter,
-    activity: Activity
-) => ({
-    req: {
-        ... activity,
-        turnID: `${activity.channelID}.${activity.conversationID}.${activity.userID}.${Date.now().toString()}`
-    } as BotRequest,
-
-    res: {
-        reply: (text: string) => Observable
-            .of(text)
-            .map(text => ({
-                ... activity,
-                text
-            } as Activity))
-            .flatMap(activity => adapter.postActivity$(activity))
-            .map(result => {})
-            .toPromise()
-    } as BotResponse
-});
-
 export class Bot {
     private middlewares: Middleware[] = [];
+    private transformers: ((activity: Activity, next: () => Promise<void>) => Promise<void>)[];
+    
+    public postActivity: (activity: Activity) => Promise<string>;
 
-    constructor(
-        private adapter: Adapter
+    constructor (
+        private adapter: Adapter,
+        ... transformers: ((activity: Activity, next: () => Promise<void>) => Promise<void>)[]
     ) {
+        transformers.reverse();
+        this.postActivity = activity => transformers
+            .reduce<() => Promise<void>>(
+                (next, transformer) => () => transformer(activity, next),
+                () => Promise.resolve()
+            )
+            ()
+            .then(() => this.adapter.postActivity$(activity).toPromise());
     }
 
     use (middleware: Middleware) {
@@ -55,13 +45,32 @@ export class Bot {
         return this;
     }
 
-    onReceiveActivity(handler: Handler) {
+    getReqRes (
+        activity: Activity
+    ) {
+        return {
+            req: {
+                ... activity,
+                turnID: `${activity.channelID}.${activity.conversationID}.${activity.userID}.${Date.now().toString()}`
+            } as BotRequest,
+        
+            res: {
+                reply: (text: string) => this.postActivity({
+                    ... activity,
+                    text
+                })
+                .then(() => {})
+            } as BotResponse
+        }
+    }
+
+    onReceiveActivity (handler: Handler) {
         const reversedMiddlewares = [...this.middlewares].reverse();
 
         this
             .adapter
             .activity$
-            .map(activity => getReqRes(this.adapter, activity))
+            .map(activity => this.getReqRes(activity))
             .flatMap(({ req, res }) => reversedMiddlewares
                 .reduce(
                     (next, middleware) => () => middleware(req, res, next),
