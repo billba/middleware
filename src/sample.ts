@@ -42,36 +42,33 @@ new Bot(new ConsoleAdapter())
     .use(doNotDisturb(stateManager))
     .use(yoify)
     .onReceiveActivity(async (req, res) => {
-        await res.reply("hey");
+        return botLogic(await getContext(req, res));
     });
 
+interface Context {
+    req: BotRequest;
+    res: BotResponse;
+    state: IState<ConversationState, UserState>;
+    intent: string;
+}
 
-// return botLogic(await getContext(req, res));
+const getContext = async (req: BotRequest, res: BotResponse): Promise<Context> => {
+    const state = await stateManager.get(req);
+    const intent = await regExpRecognizer.get(req);
 
-// interface Context {
-//     req: BotRequest;
-//     res: BotResponse;
-//     state: IState<ConversationState, UserState>;
-//     intent: string;
-// }
+    return {
+        req,
+        res,
+        state,
+        intent,
+    }
+}
 
-// const getContext = async (req: BotRequest, res: BotResponse): Promise<Context> => {
-//     const state = await stateManager.get(req);
-//     const intent = await regExpRecognizer.get(req);
-
-//     return {
-//         req,
-//         res,
-//         state,
-//         intent,
-//     }
-// }
-
-// const botLogic = async (c: Context) => {
-//     if (c.intent)
-//         return c.res.reply(`Intent found: ${c.intent}`);
-//     return c.res.reply(`hey`);
-// }
+const botLogic = async (c: Context) => {
+    if (c.intent)
+        return c.res.reply(`Intent found: ${c.intent}`);
+    return c.res.reply(`hey`);
+}
 
 
 // .use(doNotDisturb2(async (req, res) => {
