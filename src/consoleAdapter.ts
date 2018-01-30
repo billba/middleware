@@ -1,4 +1,5 @@
-import { Adapter, Activity } from './bot';
+import { Adapter } from './adapter';
+import { Activity } from './activity';
 import { Observable, Subject } from 'rxjs';
 import readline = require('readline');
 

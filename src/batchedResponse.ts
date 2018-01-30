@@ -1,4 +1,4 @@
-import { BotRequest, BotResponse, Activity } from './bot';
+import { BotRequest, BotResponse } from './bot';
 import { TurnDI } from './TurnDI';
 import { IStorage } from './storage';
 

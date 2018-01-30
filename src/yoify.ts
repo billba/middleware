@@ -1,9 +1,7 @@
 import { Middleware } from './middleware';
 
-export const yoify: Middleware = (req, res, next) => {
+export const yoify: Middleware = async (req, res, next) => {
     console.log("YO IN");
-    return next()
-        .then(() => {``
-            console.log("YO OUT");
-        })
+    await next();
+    console.log("YO OUT");
 }

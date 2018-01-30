@@ -1,20 +1,13 @@
 import { Middleware } from './middleware';
 import { Observable } from 'rxjs';
+import { Activity } from './activity';
+import { Adapter } from './adapter';
 
 export type Promiseable <T> = T | Promise<T>;
 
 export const toPromise = <T> (t: Promiseable<T>) => t instanceof Promise ? t : Promise.resolve(t);
 
 export type TurnID = string;
-
-export interface Activity {
-    channelID: string;
-    conversationID: string;
-    userID: string;
-    
-    type: 'message';
-    text: string;
-}
 
 export interface BotRequest extends Activity{
     turnID: TurnID;
@@ -25,11 +18,6 @@ export interface BotResponse {
 }
 
 export type Handler = (req: BotRequest, res: BotResponse) => (any | Promise<any>);
-
-export interface Adapter {
-    activity$: Observable<Activity>;
-    postActivity$: (activity: Activity) => Observable<string>;
-}
 
 const getReqRes = (
     adapter: Adapter,
