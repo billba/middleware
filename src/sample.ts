@@ -33,13 +33,24 @@ const atEndOfTurn = (
     await handler(req, res);
 }
 
-new Bot(new ConsoleAdapter())
+const batched = new BatchedResponseMaker();
+
+new Bot(new ConsoleAdapter(),
+    (activity, next) => {
+        activity.text = activity.text.toLocaleUpperCase();
+        return next();
+    },
+    (activity, next) => {
+        activity.text = activity.text.toLocaleLowerCase();
+        return next();
+    }
+)
     .use(atEndOfTurn((req, res) => {
         stateManager.dispose(req);
         regExpRecognizer.dispose(req);
     }))
     .use(putTimeInState(stateManager))
-    .use(doNotDisturb(stateManager))
+    // .use(doNotDisturb(stateManager))
     .use(yoify)
     .onReceiveActivity(async (req, res) => {
         return botLogic(await getContext(req, res));
