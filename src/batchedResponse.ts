@@ -1,54 +1,66 @@
-import { BotRequest, BotResponse } from './bot';
 import { TurnDI } from './TurnDI';
 import { IStorage } from './storage';
+import { Turn, Middleware } from './turns';
+import { Activity } from './activity';
 
-export class BatchedResponse {
+export interface BatchedResponseAPI {
+    responses: Activity[];
+    reply (text: string): BatchedResponse;
+    flushResponses (): Promise<void>;
+}
+
+export class BatchedResponse implements BatchedResponseAPI {
     constructor (
-        private res: BotResponse
+        private turn: Turn
     ) {
     }
 
-    responses: string[] = [];
+    responses: Activity[] = [];
 
     reply (text: string) {
-        this.responses.push(text);
+        this.responses.push({
+            ... this.turn.request,
+            type: 'message',
+            text
+        });
 
         return this;
     }
 
     async flushResponses () {
-        for (const response of this.responses) {
-            await this.res.reply(response);
-        }
-
+        await this.turn.postActivities(this.responses);
         this.responses = [];
     }
 }
 
-export class BatchedResponseMaker extends TurnDI<BatchedResponse> {
+export class BatchedResponseMaker extends TurnDI<BatchedResponseAPI> {
     constructor () {
         super();
     }
 
     get (
-        req: BotRequest,
-        res: BotResponse
+        turn: Turn,
     ) {
-        return this._get(req.turnID, () => {
-            const artifact = new BatchedResponse(res);
-
+        return this._get(turn, () => {
+            const batched = new BatchedResponse(turn);
+    
             return {
-                artifact,
+                artifact: {
+                    responses: batched.responses,
+                    reply: text => batched.reply(text),
+                    flushResponses: () => batched.flushResponses()
+                },
+
                 dispose() {
-                    return artifact.flushResponses();
+                    return batched.flushResponses();
                 }
             }    
         })
     }
 
     dispose (
-        req: BotRequest
+        turn: Turn
     ) {
-        return this._dispose(req.turnID)
+        return this._dispose(turn);
     }
 }

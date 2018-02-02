@@ -1,5 +1,5 @@
-import { BotRequest, BotResponse } from './bot';
-import { TurnDI, Turn } from './TurnDI';
+import { Turn } from './turns';
+import { AsyncTurnDI } from './TurnDI';
 import { IStorage } from './storage';
 
 export interface IState<Conversation, User> {
@@ -7,22 +7,22 @@ export interface IState<Conversation, User> {
     readonly user: User;
 }
 
-export class StateManager <Conversation = any, User = any> extends TurnDI<IState<Conversation, User>> {
+export class StateManager <Conversation = any, User = any> extends AsyncTurnDI<IState<Conversation, User>> {
     constructor (
         private storage: IStorage
     ) {
         super();
     }
 
-    private static keyFromRequest(req: BotRequest) {
-        return `${req.channelID}.${req.conversationID}.${req.userID}`;
+    private static keyFromTurn(turn: Turn) {
+        return `${turn.request.channelID}.${turn.request.conversationID}.${turn.request.userID}`;
     }
 
     get (
-        req: BotRequest
+        turn: Turn
     ) {
-        return this._get(req.turnID, () => {
-            const artifact: IState<Conversation, User> = this.storage.get(StateManager.keyFromRequest(req)) || {
+        return this._get(turn, () => {
+            const artifact: IState<Conversation, User> = this.storage.get(StateManager.keyFromTurn(turn)) || {
                 conversation: {},
                 user: {}
             };
@@ -30,7 +30,7 @@ export class StateManager <Conversation = any, User = any> extends TurnDI<IState
             return {
                 artifact,
                 dispose: () => {
-                    this.storage.set(StateManager.keyFromRequest(req), artifact);
+                    this.storage.set(StateManager.keyFromTurn(turn), artifact);
                     return Promise.resolve();
                 }
             }
@@ -38,8 +38,8 @@ export class StateManager <Conversation = any, User = any> extends TurnDI<IState
     }
 
     dispose (
-        req: BotRequest
+        turn: Turn
     ) {
-        return this._dispose(req.turnID);
+        return this._dispose(turn);
     }
 }

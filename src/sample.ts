@@ -1,13 +1,15 @@
-import { Bot, BotRequest, BotResponse, Promiseable } from './bot';
-import { Middleware } from './middleware';
+import { Promiseable } from './misc';
+import { Middleware, Turner, Turn, TurnHandler } from './turns';
 import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
 import { RegExpRecognizer } from './regex';
 import { putTimeInState, doNotDisturb, doNotDisturb2 } from './time';
 import { ConsoleAdapter } from './consoleAdapter';
-import { BatchedResponse, BatchedResponseMaker } from './batchedResponse';
+import { BatchedResponse, BatchedResponseMaker, BatchedResponseAPI } from './batchedResponse';
 import { basename } from 'path';
 import { yoify } from './yoify';
+import { simple } from './simpleReply';
+import { makeContext } from './context';
 
 interface ConversationState {
     time: Date;
@@ -26,65 +28,66 @@ const regExpRecognizer = new RegExpRecognizer()
     .add(/Goodbye|Farewell|Adieu|Aloha/i, 'farewell')
     .add(/help|aid|assistance|911/i, 'help');
 
+const batchedResponseMaker = new BatchedResponseMaker();
+
 const atEndOfTurn = (
-    handler: (req: BotRequest, res: BotResponse) => Promiseable<any>
-): Middleware => async (req, res, next) => {
-    await next();
-    await handler(req, res);
-}
-
-const batched = new BatchedResponseMaker();
-
-new Bot(new ConsoleAdapter(),
-    (activity, next) => {
-        activity.text = activity.text.toLocaleUpperCase();
-        return next();
-    },
-    (activity, next) => {
-        activity.text = activity.text.toLocaleLowerCase();
-        return next();
+    handler: TurnHandler,
+): Middleware => ({
+    turn: async (turn, next) => {
+        await next();
+        await handler(turn);
     }
-)
-    .use(atEndOfTurn((req, res) => {
-        stateManager.dispose(req);
-        regExpRecognizer.dispose(req);
-    }))
-    .use(putTimeInState(stateManager))
-    // .use(doNotDisturb(stateManager))
-    .use(yoify)
-    .onReceiveActivity(async (req, res) => {
-        return botLogic(await getContext(req, res));
-    });
+})
 
-interface Context {
-    req: BotRequest;
-    res: BotResponse;
-    state: IState<ConversationState, UserState>;
-    intent: string;
-}
 
-const getContext = async (req: BotRequest, res: BotResponse): Promise<Context> => {
-    const state = await stateManager.get(req);
-    const intent = await regExpRecognizer.get(req);
-
-    return {
-        req,
-        res,
-        state,
-        intent,
+const toUpper: Middleware = {
+    post: (turnId, activities, request, next) => {
+        for (let activity of activities) {
+            if (activity.type === 'message') {
+                activity.text = activity.text.toLocaleUpperCase();
+            }
+        }
+        return next();
     }
 }
 
-const botLogic = async (c: Context) => {
+const turner = new Turner(
+    new ConsoleAdapter(),
+    atEndOfTurn(async turn => {
+        await stateManager.dispose(turn);
+        batchedResponseMaker.dispose(turn);
+        regExpRecognizer.dispose(turn);
+    }),
+    putTimeInState(stateManager),
+    doNotDisturb(stateManager),
+    // {
+    //     turn: async (turn, next) => {
+    //         const hours = new Date().getHours();
+    //         return hours >= 8 && hours <= 17
+    //             ? next()
+    //             : simpleReply.get(turn).reply("sorry we're closed");
+    //     }
+    // },
+    // doNotDisturb2(async (turn) => {
+    //     const state = await stateManager.get(turn);
+    //     const hours = state.conversation.time.getHours();
+        
+    //     return hours >= 8 && hours <= 17;
+    // }),
+    yoify,
+    toUpper
+);
+
+const withContext = makeContext(async turn => ({
+    ... simple(turn),
+    // ... await batchedResponseMaker.get(turn),
+    state: await stateManager.get(turn),
+    intent: regExpRecognizer.get(turn),
+}));
+
+turner.onRequest(withContext(c => {
+    // return c.reply("hello world");
     if (c.intent)
-        return c.res.reply(`Intent found: ${c.intent}`);
-    return c.res.reply(`hey`);
-}
-
-
-// .use(doNotDisturb2(async (req, res) => {
-//     const state = await stateManager.get(req);
-//     const hours = state.conversation.time.getHours();
-    
-//     return hours >= 8 && hours <= 17;
-// }))
+        return c.reply(`Intent found: ${c.intent}`);
+    return c.reply(`hey`);
+}));

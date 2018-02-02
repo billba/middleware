@@ -1,5 +1,5 @@
-import { BotRequest, BotResponse, TurnID } from './bot';
-import { TurnDI, Turn } from './TurnDI';
+import { Turn } from './turns';
+import { TurnDI } from './TurnDI';
 import { IStorage } from './storage';
 
 export interface RegExpArtifact {
@@ -31,20 +31,23 @@ export class RegExpRecognizer extends TurnDI<string> {
     }
 
     get (
-        req: BotRequest
+        turn: Turn,
     ) {
-        return this._get(req.turnID, () => {
-            const re = this.res.find(re => re.regExp.test(req.text));
+        return this._get(turn, () => {
+            const request = turn.request;
+            if (request.type === 'message') {
+                const re = this.res.find(re => re.regExp.test(request.text));
 
-            return {
-                artifact: re && re.intent
+                return {
+                    artifact: re && re.intent
+                }
             }
         });
     }
 
     dispose (
-        req: BotRequest
+        turn: Turn,
     ) {
-        return this._dispose(req.turnID);
+        return this._dispose(turn);
     }
 }

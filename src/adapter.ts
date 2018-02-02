@@ -3,5 +3,5 @@ import { Activity } from './activity';
 
 export interface Adapter {
     activity$: Observable<Activity>;
-    postActivity$: (activity: Activity) => Observable<string>;
+    postActivities: (activities: Activity[]) => Promise<Array<string>>;
 }

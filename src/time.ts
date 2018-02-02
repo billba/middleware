@@ -1,6 +1,6 @@
-import { BotRequest, BotResponse, Promiseable, toPromise } from './bot';
+import { Promiseable, toPromise } from './misc';
 import { StateManager } from './stateManager';
-import { Middleware } from './middleware';
+import { Middleware, Turn } from './turns';
 
 export interface TimeState {
     time: Date
@@ -8,30 +8,43 @@ export interface TimeState {
 
 export const putTimeInState = <ConversationState extends TimeState> (
     stateManager: StateManager<ConversationState, any>
-): Middleware => async (req, res, next) => {
-    const state = await stateManager.get(req);
+): Middleware => ({
+    turn: async (turn, next) => {
+        const state = await stateManager.get(turn);
 
-    state.conversation.time = new Date();
+        state.conversation.time = new Date();
 
-    return next();
-}
+        return next();
+    }
+})
 
 export const doNotDisturb = <ConversationState extends TimeState> (
     stateManager: StateManager<ConversationState, any>
-): Middleware => async (req, res, next) => {
-    const state = await stateManager.get(req);
-    const hours = state.conversation.time.getHours();
-    
-    return hours >= 9 && hours <= 17
-        ? next()
-        : res.reply("Sorry, we're closed.");
-}
+): Middleware => ({
+    turn: async (turn, next) => {
+        const state = await stateManager.get(turn);
+        const hours = state.conversation.time.getHours();
+        
+        return hours >= 9 && hours <= 17
+            ? next()
+            : turn.postActivities([{
+                ... turn.request,
+                type: 'message',
+                text: "Sorry, we're closed."
+            }]);
+    }
+});
 
 export const doNotDisturb2 = (
-    predicate: (req: BotRequest, res: BotResponse) => Promiseable<boolean>
-): Middleware => async (req, res, next) => {
-    return (await toPromise(predicate(req, res)))
-        ? next()
-        : res.reply("Sorry, we're closed.");
-}
-
+    predicate: (turn: Turn) => Promiseable<boolean>
+): Middleware => ({
+    turn: async (turn, next) => {
+        return (await toPromise(predicate(turn)))
+            ? next()
+            : turn.postActivities([{
+                ... turn.request,
+                type: 'message',
+                text: "Sorry, we're closed."
+            }]);
+    }
+})
