@@ -1,6 +1,6 @@
 import { Activity } from './activity';
 import { Adapter } from './adapter';
-import { toPromise } from './misc';
+import { toPromise, Promiseable } from './misc';
 import { read } from 'fs';
 
 export type PostMiddleware = (
@@ -20,14 +20,14 @@ export type Middleware = {
     turn?: TurnMiddleware;
 }
 
-const defaultTurnMiddleware: TurnMiddleware = (turnContext, next) => next();
+const defaultTurnMiddleware: TurnMiddleware = (turn, next) => next();
 
 const defaultPostMiddleware: PostMiddleware = (turnID, activities, request, next) => next();
 
 export const normalizedMiddleware = (
-    middleware: Partial<Middleware>
+    middleware: Middleware
 ): Middleware => middleware.turn && middleware.post
-    ? middleware as Middleware
+    ? middleware
     : {
         turn: middleware.turn
             ? (turnContext, next) => middleware.turn(turnContext, next)
@@ -44,24 +44,31 @@ export interface Turn {
     postActivities: (activities: Activity[]) => Promise<Array<string>>;
 }
 
-export type TurnHandler = (turn: Turn) => (any | Promise<any>);
+export type TurnHandler = (turn: Turn) => Promiseable<any>;
 
-export class Turner {
-    private middlewares: Middleware[] = [];
+export class TurnAdapter {
+    private middlewares: Middleware[];
     
     constructor (
         private adapter: Adapter,
         ... middlewares: Middleware[]
     ) {
-        this.middlewares = [...middlewares]
-            .reverse()
-            .map(normalizedMiddleware);
+        this.middlewares = middlewares;
+    }
+
+    use (middleware: Middleware) {
+        this.middlewares.push(middleware);
+        return this;
     }
 
     private handle (
         request: Activity,
-        handler: TurnHandler
+        handler: TurnHandler,
     ) {
+        const middlewares = [... this.middlewares]
+            .reverse()
+            .map(normalizedMiddleware);
+
         const id = Date
             .now()
             .toString();
@@ -69,26 +76,24 @@ export class Turner {
         const turn: Turn = {
             id,
             request,
-            postActivities: (activities: Activity[]) => this.middlewares
+            postActivities: (activities: Activity[]) => middlewares
                 .reduce(
                     (next, middleware) => () => middleware.post(id, activities, request, next),
                     () => Promise.resolve()
-                )
-                ()
+                )()
                 .then(() => this.adapter.postActivities(activities))
         }
 
-        return this.middlewares
+        return middlewares
             .reduce(
                 (next, middleware) => () => middleware.turn(turn, next),
                 () => toPromise(handler(turn))
-            )
-            ()
+            )()
     }
 
     do (
         request: Activity,
-        handler: TurnHandler
+        handler: TurnHandler,
     ) {
         return this.handle(
             {
@@ -101,11 +106,13 @@ export class Turner {
         );
     }
 
-    onRequest(handler: TurnHandler) {
+    onRequest(
+        handler: TurnHandler,
+    ) {
         this
             .adapter
             .activity$
             .flatMap(request => this.handle(request, handler))
-        .subscribe();
+            .subscribe();
     }
 }

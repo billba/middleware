@@ -1,5 +1,5 @@
 import { Promiseable } from './misc';
-import { Middleware, Turner, Turn, TurnHandler } from './turns';
+import { Middleware, TurnAdapter, Turn, TurnHandler } from './turns';
 import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
 import { RegExpRecognizer } from './regex';
@@ -51,8 +51,7 @@ const toUpper: Middleware = {
     }
 }
 
-const turner = new Turner(
-    new ConsoleAdapter(),
+const turner = new TurnAdapter(new ConsoleAdapter(),
     atEndOfTurn(async turn => {
         await stateManager.dispose(turn);
         batchedResponseMaker.dispose(turn);
