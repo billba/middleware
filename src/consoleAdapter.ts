@@ -23,8 +23,11 @@ export class ConsoleAdapter implements Adapter {
 
     activity$ = new Subject<Activity>();
 
-    postActivity$ (activity: Activity) {
-        console.log("| ", activity.text);
-        return Observable.of("success");
+    async postActivities (activities: Activity[]) {
+        return activities.map(activity => {
+            if (activity.type === 'message')
+                console.log("| ", activity.text);
+            return "success";
+        });
     }
 }
