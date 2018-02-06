@@ -28,12 +28,12 @@ export class BatchedResponse implements BatchedResponseAPI {
     }
 
     async flushResponses () {
-        await this.turn.postActivities(this.responses);
+        await this.turn.post(this.responses);
         this.responses = [];
     }
 }
 
-export class BatchedResponseMaker extends TurnDI<BatchedResponseAPI> {
+export class BatchedResponseMaker extends TurnDI<BatchedResponseAPI> implements Middleware {
     constructor () {
         super();
     }
@@ -62,5 +62,13 @@ export class BatchedResponseMaker extends TurnDI<BatchedResponseAPI> {
         turn: Turn
     ) {
         return this._dispose(turn);
+    }
+
+    async turn (
+        turn: Turn,
+        next: () => Promise<void>
+    ) {
+        await next();
+        this.dispose(turn);
     }
 }

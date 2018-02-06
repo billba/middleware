@@ -21,6 +21,12 @@ export abstract class AsyncTurnDI <T> {
         return turnResult
             ? Promise.resolve(turnResult.artifact)
             : toPromise(getter())
+                .then(t => t
+                    ? t
+                    : {
+                        artifact: undefined
+                    }
+                )
                 .then(t => t.dispose
                     ? t
                     : {
@@ -67,6 +73,10 @@ export abstract class TurnDI <T> {
 
         if (!turnResult) {
             turnResult = getter();
+            if (turnResult === undefined)
+                turnResult = {
+                    artifact: undefined
+                }
             if (!turnResult.dispose)
                 turnResult.dispose = () => {};
             this.turnResults[turn.id] = turnResult;

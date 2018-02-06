@@ -23,7 +23,7 @@ export class ConsoleAdapter implements Adapter {
 
     activity$ = new Subject<Activity>();
 
-    async postActivities (activities: Activity[]) {
+    async post (activities: Activity[]) {
         return activities.map(activity => {
             if (activity.type === 'message')
                 console.log("| ", activity.text);

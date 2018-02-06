@@ -8,7 +8,7 @@ export interface SimpleReplyAPI {
 }
 
 export const simple = (turn: Turn): SimpleReplyAPI => {
-    const send = (to: Activity, text: string) => turn.postActivities([{
+    const send = (to: Activity, text: string) => turn.post([{
         ... to,
         type: 'message',
         text

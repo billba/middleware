@@ -1,4 +1,4 @@
-import { Turn } from './turns';
+import { Turn, Middleware } from './turns';
 import { TurnDI } from './TurnDI';
 import { IStorage } from './storage';
 
@@ -11,7 +11,7 @@ interface RE {
     intent: string;
 }
 
-export class RegExpRecognizer extends TurnDI<string> {
+export class RegExpRecognizer extends TurnDI<string> implements Middleware {
     private res: RE[] = [];
 
     constructor() {
@@ -49,5 +49,10 @@ export class RegExpRecognizer extends TurnDI<string> {
         turn: Turn,
     ) {
         return this._dispose(turn);
+    }
+
+    async turn (turn: Turn, next: () => Promise<void>) {
+        await next();
+        this.dispose(turn);
     }
 }

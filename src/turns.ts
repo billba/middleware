@@ -41,7 +41,7 @@ export const normalizedMiddleware = (
 export interface Turn {
     id: string;
     request: Activity;
-    postActivities: (activities: Activity[]) => Promise<Array<string>>;
+    post: (activities: Activity[]) => Promise<Array<string>>;
 }
 
 export type TurnHandler = (turn: Turn) => Promiseable<any>;
@@ -76,12 +76,12 @@ export class TurnAdapter {
         const turn: Turn = {
             id,
             request,
-            postActivities: (activities: Activity[]) => middlewares
+            post: (activities: Activity[]) => middlewares
                 .reduce(
                     (next, middleware) => () => middleware.post(id, activities, request, next),
                     () => Promise.resolve()
                 )()
-                .then(() => this.adapter.postActivities(activities))
+                .then(() => this.adapter.post(activities))
         }
 
         return middlewares

@@ -1,4 +1,4 @@
-import { Turn } from './turns';
+import { Turn, Middleware } from './turns';
 import { AsyncTurnDI } from './TurnDI';
 import { IStorage } from './storage';
 
@@ -7,7 +7,7 @@ export interface IState<Conversation, User> {
     readonly user: User;
 }
 
-export class StateManager <Conversation = any, User = any> extends AsyncTurnDI<IState<Conversation, User>> {
+export class StateManager <Conversation = any, User = any> extends AsyncTurnDI<IState<Conversation, User>> implements Middleware {
     constructor (
         private storage: IStorage
     ) {
@@ -37,9 +37,14 @@ export class StateManager <Conversation = any, User = any> extends AsyncTurnDI<I
         });
     }
 
-    dispose (
+    set (
         turn: Turn
     ) {
         return this._dispose(turn);
+    }
+
+    async turn (turn: Turn, next: () => Promise<void>) {
+        await next();
+        this.set(turn);
     }
 }
