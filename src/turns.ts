@@ -4,14 +4,12 @@ import { toPromise, Promiseable } from './misc';
 import { read } from 'fs';
 
 export type PostMiddleware = (
-    turnID: string,
-    activities: Activity[],
-    request: Activity,
-    next: () => Promise<void>,
+    turn: Turn,
+    activities: Activity[]
 ) => Promise<any>;
 
 export type TurnMiddleware = (
-    turnContext: Turn,
+    turn: Turn,
     next: () => Promise<void>
 ) => Promise<any>;
 
@@ -22,7 +20,7 @@ export type Middleware = {
 
 const defaultTurnMiddleware: TurnMiddleware = (turn, next) => next();
 
-const defaultPostMiddleware: PostMiddleware = (turnID, activities, request, next) => next();
+const defaultPostMiddleware: PostMiddleware = (turn, activities) => turn.post(activities);
 
 export const normalizedMiddleware = (
     middleware: Middleware
@@ -34,14 +32,16 @@ export const normalizedMiddleware = (
             : defaultTurnMiddleware,
 
         post: middleware.post
-            ? (turnID, activities, request, next) => middleware.post(turnID, activities, request, next)
+            ? (turn, activities) => middleware.post(turn, activities)
             : defaultPostMiddleware
     }
+
+type PostActivities = (activities: Activity[]) => Promise<Array<string>>;
 
 export interface Turn {
     id: string;
     request: Activity;
-    post: (activities: Activity[]) => Promise<Array<string>>;
+    post: PostActivities
 }
 
 export type TurnHandler = (turn: Turn) => Promiseable<any>;
@@ -76,12 +76,18 @@ export class TurnAdapter {
         const turn: Turn = {
             id,
             request,
-            post: (activities: Activity[]) => middlewares
-                .reduce(
-                    (next, middleware) => () => middleware.post(id, activities, request, next),
-                    () => Promise.resolve()
-                )()
-                .then(() => this.adapter.post(activities))
+            post: middlewares
+                .reduce<PostActivities>(
+                    (post, middleware) => activities => middleware.post(
+                        {
+                            id,
+                            request,
+                            post
+                        },
+                        activities
+                    ),
+                    activities => this.adapter.post(activities)
+                )
         }
 
         return middlewares

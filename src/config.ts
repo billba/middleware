@@ -31,13 +31,13 @@ const regExpRecognizer = new RegExpRecognizer()
     .add(/help|aid|assistance|911/i, 'help');
 
 const toUpper: Middleware = {
-    post: (turnId, activities, request, next) => {
+    post: (turn, activities) => {
         for (let activity of activities) {
             if (activity.type === 'message') {
                 activity.text = activity.text.toLocaleUpperCase();
             }
         }
-        return next();
+        return turn.post(activities);
     }
 }
 
