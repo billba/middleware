@@ -39,7 +39,7 @@ const yoify: Middleware = {
 }
 
 const toUpper: Middleware = {
-    post: (turn) => {
+    post (turn) {
         for (let activity of turn.responses) {
             if (activity.type === 'message')
                 activity.text = activity.text.toLocaleUpperCase();
