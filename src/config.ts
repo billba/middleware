@@ -5,7 +5,7 @@ import { MemoryStorage } from './memoryStorage';
 import { RegExpRecognizer } from './regex';
 import { putTimeInState, doNotDisturb, doNotDisturb2 } from './time';
 import { ConsoleAdapter } from './consoleAdapter';
-import { simple, SimpleAPI } from './simpleReply';
+import { simple, SimpleAPI } from './simple';
 import { makeContext } from './context';
 import { Activity } from './activity';
 
