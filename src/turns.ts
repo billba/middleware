@@ -1,7 +1,6 @@
 import { Activity } from './activity';
 import { Adapter } from './adapter';
 import { toPromise, Promiseable } from './misc';
-import { read } from 'fs';
 
 type FlushResponses = () => Promise<Array<string>>;
 

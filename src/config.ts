@@ -1,13 +1,10 @@
 import { Promiseable } from './misc';
-import { Middleware, TurnAdapter, Turn, TurnHandler } from './turns';
+import { Middleware, TurnAdapter, Turn } from './turns';
 import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
 import { RegExpRecognizer } from './regex';
 import { putTimeInState, doNotDisturb, doNotDisturb2 } from './time';
 import { ConsoleAdapter } from './consoleAdapter';
-import { BatchedResponse, BatchedResponseMaker, BatchedResponseAPI } from './batchedResponse';
-import { basename } from 'path';
-import { yoify } from './yoify';
 import { simple, SimpleAPI } from './simpleReply';
 import { makeContext } from './context';
 import { Activity } from './activity';
@@ -30,6 +27,17 @@ const regExpRecognizer = new RegExpRecognizer()
     .add(/Start|Go|Start your engines/i, 'start')
     .add(/help|aid|assistance|911/i, 'help');
 
+
+const yoify: Middleware = {
+    async turn (turn, next) {
+        const s = simple(turn);
+        
+        await s.reply("yo in")
+        await next();
+        await s.reply("yo out");
+    }
+}
+
 const toUpper: Middleware = {
     post: (turn) => {
         for (let activity of turn.responses) {
@@ -45,8 +53,8 @@ const app = new TurnAdapter(new ConsoleAdapter(),
     regExpRecognizer,
     putTimeInState(stateManager),
     doNotDisturb(stateManager),
+    toUpper,
     yoify,
-    toUpper
 );
 
 export type Context = Turn & SimpleAPI & { 
