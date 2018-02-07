@@ -15,7 +15,7 @@ export class StateManager <Conversation = any, User = any> extends AsyncTurnDI<I
     }
 
     private static keyFromTurn(turn: Turn) {
-        return `${turn.request.channelID}.${turn.request.conversationID}.${turn.request.userID}`;
+        return `${turn.request.channelId}.${turn.request.conversation.id}.${turn.request.from.id}`;
     }
 
     get (

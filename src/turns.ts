@@ -1,5 +1,4 @@
-import { Activity } from './activity';
-import { Adapter } from './adapter';
+import { Activity, ActivityAdapter } from 'botbuilder';
 import { toPromise, Promiseable } from './misc';
 
 type FlushResponses = () => Promise<Array<string>>;
@@ -51,7 +50,7 @@ export class TurnAdapter {
     private middlewares: Middleware[];
     
     constructor (
-        private adapter: Adapter,
+        private adapter: ActivityAdapter,
         ... middlewares: Middleware[]
     ) {
         this.middlewares = middlewares;
@@ -116,9 +115,9 @@ export class TurnAdapter {
         return this.handle(
             {
                 type: 'proactive',
-                channelID: request.channelID,
-                conversationID: request.conversationID,
-                userID: request.userID
+                channelId: request.channelId,
+                conversation: request.conversation,
+                from: request.from
             },
             handler
         );
@@ -127,10 +126,6 @@ export class TurnAdapter {
     onRequest(
         handler: TurnHandler,
     ) {
-        this
-            .adapter
-            .activity$
-            .flatMap(request => this.handle(request, handler))
-            .subscribe();
+        this.adapter.onReceive = request => this.handle(request, handler);
     }
 }

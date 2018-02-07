@@ -13,4 +13,3 @@ onRequest(c => {
     }
     c.reply(`hey`);
 });
-

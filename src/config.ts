@@ -4,10 +4,10 @@ import { StateManager, IState } from './stateManager';
 import { MemoryStorage } from './memoryStorage';
 import { RegExpRecognizer } from './regex';
 import { putTimeInState, doNotDisturb, doNotDisturb2 } from './time';
-import { ConsoleAdapter } from './consoleAdapter';
+import { ConsoleAdapter } from 'botbuilder-node';
 import { simple, SimpleAPI } from './simple';
 import { makeContext } from './context';
-import { Activity } from './activity';
+import { Activity } from 'botbuilder';
 
 interface ConversationState {
     time: Date;
@@ -48,7 +48,10 @@ const toUpper: Middleware = {
     }
 }
 
-const app = new TurnAdapter(new ConsoleAdapter(),
+const consoleAdapter = new ConsoleAdapter();
+consoleAdapter.listen();
+
+const app = new TurnAdapter(consoleAdapter,
     stateManager,
     regExpRecognizer,
     putTimeInState(stateManager),
