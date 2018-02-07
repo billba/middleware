@@ -8,7 +8,7 @@ import { ConsoleAdapter } from './consoleAdapter';
 import { BatchedResponse, BatchedResponseMaker, BatchedResponseAPI } from './batchedResponse';
 import { basename } from 'path';
 import { yoify } from './yoify';
-import { simple, SimpleReplyAPI } from './simpleReply';
+import { simple, SimpleAPI } from './simpleReply';
 import { makeContext } from './context';
 import { Activity } from './activity';
 
@@ -31,13 +31,13 @@ const regExpRecognizer = new RegExpRecognizer()
     .add(/help|aid|assistance|911/i, 'help');
 
 const toUpper: Middleware = {
-    post: (turn, activities) => turn.post(activities.map(activity => activity.type === 'message'
-        ? {
-            ... activity,
-            text: activity.text.toLocaleUpperCase()
+    post: (turn) => {
+        for (let activity of turn.responses) {
+            if (activity.type === 'message')
+                activity.text = activity.text.toLocaleUpperCase();
         }
-        : activity
-    ))
+        return turn.flushResponses();
+    }
 }
 
 const app = new TurnAdapter(new ConsoleAdapter(),
@@ -49,7 +49,7 @@ const app = new TurnAdapter(new ConsoleAdapter(),
     toUpper
 );
 
-export type Context = Turn & SimpleReplyAPI & { 
+export type Context = Turn & SimpleAPI & { 
     state: IState<ConversationState, UserState>;
     intent: string
 };

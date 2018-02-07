@@ -3,14 +3,24 @@ import { Adapter } from './adapter';
 import { toPromise, Promiseable } from './misc';
 import { read } from 'fs';
 
+type FlushResponses = () => Promise<Array<string>>;
+
+export interface Turn {
+    id: string;
+
+    request: Activity;
+
+    responses: Activity[];
+    flushResponses: FlushResponses;
+}
+
 export type PostMiddleware = (
     turn: Turn,
-    activities: Activity[]
 ) => Promise<any>;
 
 export type TurnMiddleware = (
     turn: Turn,
-    next: () => Promise<void>
+    next: () => Promise<void>,
 ) => Promise<any>;
 
 export type Middleware = {
@@ -20,7 +30,7 @@ export type Middleware = {
 
 const defaultTurnMiddleware: TurnMiddleware = (turn, next) => next();
 
-const defaultPostMiddleware: PostMiddleware = (turn, activities) => turn.post(activities);
+const defaultPostMiddleware: PostMiddleware = (turn) => turn.flushResponses();
 
 export const normalizedMiddleware = (
     middleware: Middleware
@@ -32,17 +42,9 @@ export const normalizedMiddleware = (
             : defaultTurnMiddleware,
 
         post: middleware.post
-            ? (turn, activities) => middleware.post(turn, activities)
+            ? (turn) => middleware.post(turn)
             : defaultPostMiddleware
     }
-
-type PostActivities = (activities: Activity[]) => Promise<Array<string>>;
-
-export interface Turn {
-    id: string;
-    request: Activity;
-    post: PostActivities
-}
 
 export type TurnHandler = (turn: Turn) => Promiseable<any>;
 
@@ -61,40 +63,51 @@ export class TurnAdapter {
         return this;
     }
 
-    private handle (
+    private async handle (
         request: Activity,
         handler: TurnHandler,
     ) {
-        const middlewares = [... this.middlewares]
-            .reverse()
-            .map(normalizedMiddleware);
+        const middlewares = this.middlewares
+            .map(normalizedMiddleware)
+            .reverse();
 
         const id = Date
             .now()
             .toString();
 
+        const responses: Activity[] = [];
+
         const turn: Turn = {
             id,
             request,
-            post: middlewares
-                .reduce<PostActivities>(
-                    (post, middleware) => activities => middleware.post(
-                        {
-                            id,
-                            request,
-                            post
-                        },
-                        activities
-                    ),
-                    this.adapter.post
+            responses,
+            flushResponses: middlewares
+                .reduce<FlushResponses>(
+                    (flushResponses, middleware) => () => middleware.post({
+                        id,
+                        request,
+                        responses,
+                        flushResponses
+                    }),
+                    () => responses.length > 0
+                        ? this
+                            .adapter
+                            .post(responses)
+                            .then(result => {
+                                responses.length = 0;
+                                return result;
+                            })
+                        : Promise.resolve([])
                 )
         }
 
-        return middlewares
+        await middlewares
             .reduce(
                 (next, middleware) => () => middleware.turn(turn, next),
                 () => toPromise(handler(turn))
-            )()
+            )();
+        
+        await turn.flushResponses();
     }
 
     do (

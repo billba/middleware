@@ -25,13 +25,13 @@ export const doNotDisturb = <ConversationState extends TimeState> (
         const state = await stateManager.get(turn);
         const hours = state.conversation.time.getHours();
         
-        return hours >= 10 && hours <= 16
+        return hours >= 7 && hours <= 16
             ? next()
-            : turn.post([{
+            : turn.responses.push({
                 ... turn.request,
                 type: 'message',
                 text: "Sorry, we're closed."
-            }]);
+            });
     }
 });
 
@@ -41,10 +41,10 @@ export const doNotDisturb2 = (
     turn: async (turn, next) => {
         return (await toPromise(predicate(turn)))
             ? next()
-            : turn.post([{
+            : turn.responses.push({
                 ... turn.request,
                 type: 'message',
                 text: "Sorry, we're closed."
-            }]);
+            });
     }
 })
