@@ -31,14 +31,13 @@ const regExpRecognizer = new RegExpRecognizer()
     .add(/help|aid|assistance|911/i, 'help');
 
 const toUpper: Middleware = {
-    post: (turn, activities) => {
-        for (let activity of activities) {
-            if (activity.type === 'message') {
-                activity.text = activity.text.toLocaleUpperCase();
-            }
+    post: (turn, activities) => turn.post(activities.map(activity => activity.type === 'message'
+        ? {
+            ... activity,
+            text: activity.text.toLocaleUpperCase()
         }
-        return turn.post(activities);
-    }
+        : activity
+    ))
 }
 
 const app = new TurnAdapter(new ConsoleAdapter(),
@@ -60,7 +59,7 @@ const withContext = makeContext<Context>(async turn => ({
     ... simple(turn),
     // ... await batchedResponseMaker.get(turn),
     state: await stateManager.get(turn),
-    intent: regExpRecognizer.get(turn),
+    intent: regExpRecognizer.recognize(turn),
 }));
 
 export const onRequest = (handler: (c: Context) => Promiseable<any>) => app.onRequest(withContext(handler));

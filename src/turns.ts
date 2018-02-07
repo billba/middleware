@@ -86,7 +86,7 @@ export class TurnAdapter {
                         },
                         activities
                     ),
-                    activities => this.adapter.post(activities)
+                    this.adapter.post
                 )
         }
 

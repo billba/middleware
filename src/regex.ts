@@ -30,7 +30,7 @@ export class RegExpRecognizer extends TurnDI<string> implements Middleware {
         return this;
     }
 
-    get (
+    recognize (
         turn: Turn,
     ) {
         return this._get(turn, () => {
