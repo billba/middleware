@@ -211,4 +211,7 @@ In [Sample 9: Cleanup](src/samples/cleanup.ts) we do just that, moving the setup
 
 ## Parting words
 
-T
+This implementation is explicitly a strawman - a concrete example that we can all look at and discuss as we search for the best solution to the problem listed above. Some key details have no doubt been omitted or overly simplified, and so I ask for some generosity of spirit and flexibility of mind as you look through it.
+
+Thanks,
+Bill
