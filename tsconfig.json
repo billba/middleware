@@ -11,6 +11,15 @@
         "sourceMap": true
     },
     "files": [
-        "src/sample.ts"
+        "./src/turns.ts",
+        "./src/samples/basic.ts",
+        "./src/samples/simple.ts",
+        "./src/samples/context.ts",
+        "./src/samples/simpleService.ts",
+        "./src/samples/simpleMiddleware.ts",
+        "./src/samples/recognizer.ts",
+        "./src/samples/state.ts",
+        "./src/samples/proactive.ts",
+        "./src/samples/cleanup.ts",
     ]
 }

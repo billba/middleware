@@ -6,11 +6,16 @@ export class MemoryStorage implements IStorage {
     ) {
     }
 
-    get(key: string) {
+    get(
+        key: string,
+    ) {
         return this.storage[key];
     }
 
-    set(key: string, value: any) {
+    set(
+        key: string,
+        value: any,
+    ) {
         this.storage[key] = value;
     }
 }

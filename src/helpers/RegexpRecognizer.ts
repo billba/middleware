@@ -1,6 +1,5 @@
-import { Turn, Middleware } from './turns';
-import { TurnDI } from './TurnDI';
-import { IStorage } from './storage';
+import { Turn, Middleware } from '../turns';
+import { TurnService } from './TurnService';
 
 export interface RegExpArtifact {
     intent: string;
@@ -11,7 +10,7 @@ interface RE {
     intent: string;
 }
 
-export class RegExpRecognizer extends TurnDI<string> implements Middleware {
+export class RegexpRecognizer extends TurnService<string> implements Middleware {
     private res: RE[] = [];
 
     constructor() {
@@ -38,9 +37,10 @@ export class RegExpRecognizer extends TurnDI<string> implements Middleware {
             if (request.type === 'message') {
                 const re = this.res.find(re => re.regExp.test(request.text));
 
-                return {
-                    artifact: re && re.intent
-                }
+                if (re)
+                    return {
+                        artifact: re.intent
+                    }
             }
         });
     }

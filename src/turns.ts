@@ -1,7 +1,7 @@
-import { Activity, ActivityAdapter } from 'botbuilder';
+import { Activity, ActivityAdapter, ConversationResourceResponse } from 'botbuilder';
 import { toPromise, Promiseable } from './misc';
 
-type FlushResponses = () => Promise<Array<string>>;
+type FlushResponses = () => Promise<Array<ConversationResourceResponse>>;
 
 export interface Turn {
     id: string;
@@ -72,7 +72,7 @@ export class TurnAdapter {
         const id = Date
             .now()
             .toString();
-
+        
         const responses: Activity[] = [];
 
         const turn: Turn = {
@@ -129,3 +129,15 @@ export class TurnAdapter {
         this.adapter.onReceive = request => this.handle(request, handler);
     }
 }
+
+export const GetContext = <Context> (
+    getContext: (turn: Turn) => Promiseable<Context>
+) => (turn: Turn) => toPromise(getContext(turn));
+
+export const WithContext = <Context> (
+    getContext: (turn: Turn) => Promiseable<Context>
+) => (
+    handler: (context: Context) => Promiseable<any>,
+) => async (
+    turn: Turn,
+) => toPromise(handler(await toPromise(getContext(turn))));

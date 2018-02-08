@@ -1,22 +1,22 @@
-import { toPromise, Promiseable } from './misc';
-import { Turn } from './turns';
+import { toPromise, Promiseable } from '../misc';
+import { Turn } from '../turns';
 
-export interface AsyncTurnResult<T> {
+export interface AsyncTurnServiceResult<T> {
     artifact: T;
     dispose?: () => Promise<void>;
 }
 
-export abstract class AsyncTurnDI <T> {
-    protected turnResults: Record<string, AsyncTurnResult<T>> = {};
+export abstract class AsyncTurnService <T> {
+    protected turnServiceResults: Record<string, AsyncTurnServiceResult<T>> = {};
 
     constructor() {
     }
 
     protected _get (
         turn: Turn,
-        getter: () => Promiseable<AsyncTurnResult<T>>
+        getter: () => Promiseable<AsyncTurnServiceResult<T>>
     ) {
-        let turnResult = this.turnResults[turn.id];
+        let turnResult = this.turnServiceResults[turn.id];
 
         return turnResult
             ? Promise.resolve(turnResult.artifact)
@@ -32,10 +32,10 @@ export abstract class AsyncTurnDI <T> {
                     : {
                         artifact: t.artifact,
                         dispose: () => Promise.resolve()
-                    } as AsyncTurnResult<T>
+                    } as AsyncTurnServiceResult<T>
                 )
                 .then(t2 => {
-                    this.turnResults[turn.id] = t2;
+                    this.turnServiceResults[turn.id] = t2;
                     return t2.artifact;
                 });
     }
@@ -43,33 +43,33 @@ export abstract class AsyncTurnDI <T> {
     protected _dispose (
         turn: Turn,
     ) {
-        let turnResult = this.turnResults[turn.id];
+        let turnResult = this.turnServiceResults[turn.id];
 
         return turnResult
             ? turnResult.dispose()
                 .then(() => {
-                    delete this.turnResults[turn.id];
+                    delete this.turnServiceResults[turn.id];
                 })
             : Promise.resolve();
     }
 }
 
-export interface TurnResult<T> {
+export interface TurnServiceResult<T> {
     artifact: T;
     dispose?: () => void;
 }
 
-export abstract class TurnDI <T> {
-    protected turnResults: Record<string, TurnResult<T>> = {};
+export abstract class TurnService <T> {
+    protected turnServiceResults: Record<string, TurnServiceResult<T>> = {};
 
     constructor() {
     }
 
     protected _get (
         turn: Turn,
-        getter: () => TurnResult<T>
+        getter: () => TurnServiceResult<T>
     ) {
-        let turnResult = this.turnResults[turn.id];
+        let turnResult = this.turnServiceResults[turn.id];
 
         if (!turnResult) {
             turnResult = getter();
@@ -79,7 +79,7 @@ export abstract class TurnDI <T> {
                 }
             if (!turnResult.dispose)
                 turnResult.dispose = () => {};
-            this.turnResults[turn.id] = turnResult;
+            this.turnServiceResults[turn.id] = turnResult;
         }
 
         return turnResult.artifact;
@@ -88,11 +88,11 @@ export abstract class TurnDI <T> {
     protected _dispose (
         turn: Turn,
     ) {
-        let turnResult = this.turnResults[turn.id];
+        let turnResult = this.turnServiceResults[turn.id];
 
         if (turnResult) {
             turnResult.dispose();
-            delete this.turnResults[turn.id];
+            delete this.turnServiceResults[turn.id];
         }
     }
 }

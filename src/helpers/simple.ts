@@ -1,6 +1,5 @@
-import { Activity } from "./activity";
-import { Turn } from "./turns";
-import { TurnDI } from "./TurnDI";
+import { Activity } from "botbuilder";
+import { Turn } from "../turns";
 
 export interface SimpleAPI {
     reply (contents: string | Activity): void;

@@ -1,13 +1,13 @@
-import { Turn, Middleware } from './turns';
-import { AsyncTurnDI } from './TurnDI';
+import { Turn, Middleware } from '../turns';
+import { AsyncTurnService } from './TurnService';
 import { IStorage } from './storage';
 
-export interface IState<Conversation, User> {
+export interface IState<Conversation = any, User = any> {
     readonly conversation: Conversation;
     readonly user: User;
 }
 
-export class StateManager <Conversation = any, User = any> extends AsyncTurnDI<IState<Conversation, User>> implements Middleware {
+export class StateManager <Conversation = any, User = any> extends AsyncTurnService<IState<Conversation, User>> implements Middleware {
     constructor (
         private storage: IStorage
     ) {
