@@ -93,7 +93,7 @@ This provides:
 
 The main difference between `TurnAdapter` and `Bot` is the lack of a `createContext` middleware function. That's because middleware is not expected to modify context. A minor difference (aside from naming) is that the `post` middleware doesn't take a `next` function. Instead, `turn.flushResponses()` performs that function.
 
-To see Turn and TurnAdapter in action, look at [Sample 1: Basic](samples/basic.ts). To run any of the samples listed here, which all use the `ConsoleAdapter` just:
+To see Turn and TurnAdapter in action, look at [Sample 1: Basic](src/samples/basic.ts). To run any of the samples listed here, which all use the `ConsoleAdapter` just:
 
 0. clone this repo
 1. `npm install`
@@ -108,13 +108,13 @@ This sample shows that you can work with a plain Turn but it's kind of a pain. V
 
 ### adding abstractions
 
-[Sample 2: Simple](samples/simple.ts) takes the Basic sample and adds a helper abstraction called `simple` which gives batched and async versions of `reply` and `send`. Both the `yoify` middleware and the `onRequest` message loop use this helper to simplify sending replies.
+[Sample 2: Simple](src/samples/simple.ts) takes the Basic sample and adds a helper abstraction called `simple` which gives batched and async versions of `reply` and `send`. Both the `yoify` middleware and the `onRequest` message loop use this helper to simplify sending replies.
 
 This is nice because the bot developer can pick whatever abstraction(s) they want to use. But I miss the simplicity of taking a base context and adding the functionality I want.
 
 ### working with context
 
-[Sample 3: Context](samples/context.ts) takes the Simple sample and introduces the notion of a Context object by:
+[Sample 3: Context](src/samples/context.ts) takes the Simple sample and introduces the notion of a Context object by:
 
 * creating a type called `Context` (this is just a convention - call it anything you want)
 * creating a function called `getContext` that takes a Turn and transforms it into a Context
@@ -136,7 +136,7 @@ You can, as shown in this sample, just take a Turn and add functionality to it. 
 
 `TurnService` uses the `id` value of a Turn to make all its trains run on time.
 
-In [Sample 4: SimpleService](samples/simpleService.ts) we:
+In [Sample 4: SimpleService](src/samples/simpleService.ts) we:
 
 * create `simpleService`, an instance of a `TurnService` class called `SimpleService`, which wraps `simple`
 * convert yoify into a class called Yoify, and pass `simpleService` into its constructor. We could have just closed over the global `simpleService`, but this allows us to
@@ -150,7 +150,7 @@ That ad-hoc middleware is pretty ugly. It would be nice if SimpleService could a
 
 ### TurnService & Middleware
 
-In [Sample 5: SimpleMiddleware](samples/simpleMiddleware.ts) we:
+In [Sample 5: SimpleMiddleware](src/samples/simpleMiddleware.ts) we:
 
 * change `simpleService` to `simpleMiddleware`, an instance of SimpleMiddleware, which extends SimpleService *and* implements the `turn` middleware function
 * replace the ad-hoc middleware with `simpleMiddleware`, so that it can clean up after itself.
@@ -163,7 +163,7 @@ It's important to emphasize that any number of DI frameworks or patterns could b
 
 ### Recognizers
 
-Recognizers are a great example of code that you want to run, at most, once per turn, so it fits perfectly into this pattern. In [Sample 6: Recognizer](samples/recognizer.ts) we:
+Recognizers are a great example of code that you want to run, at most, once per turn, so it fits perfectly into this pattern. In [Sample 6: Recognizer](src/samples/recognizer.ts) we:
 
 * create `regexpRecognizer`, an instance of `RegexpRecognizer`, which is both a `TurnService` and `Middleware`
 * add it to the middleware stack so that it can clean up after itself
@@ -178,7 +178,7 @@ State fits into this pattern nicely, and allows us to demonstrate:
 * the async version of TurnService
 * a service cleaning up after itself. In this case, persisting the changed state.
 
-In [Sample 7: State](samples/state.ts) we:
+In [Sample 7: State](src/samples/state.ts) we:
 
 * create a type called `ConversationState` (this name is purely convention)
 * create `stateManager`, an instance of `StateManager<ConversationState>`, which is both an `AsyncTurnService` and `Middleware`, using an in-memory store
@@ -191,7 +191,7 @@ In [Sample 7: State](samples/state.ts) we:
 
 We'd like access to all of the above goodness for proactive messages too.
 
-In [Sample 8: Proactive](samples/proactive.ts) we:
+In [Sample 8: Proactive](src/samples/proactive.ts) we:
 
 * add another intent check to `echo()` -- on 'start' we begin an endless loop which runs a proactive session every three seconds
 
@@ -207,7 +207,7 @@ Finally, in this example, the proactive session shares `Context` definition and 
 
 This sample has gotten a little busy. But most of the code is about setting up the bot. The actual bot logic is quite simple. It's quite simple to separate the boilerplate setup code from the bot logic.
 
-In [Sample 9: Cleanup](samples/cleanup.ts) we do just that, moving the setup code into [its own file](samples/setup.ts), and exporting just a few simple symbols. This reflects what might be a common scenario - a technical manager creates boilerplate for a bot, which is coded up by less technical employees.
+In [Sample 9: Cleanup](src/samples/cleanup.ts) we do just that, moving the setup code into [its own file](src/samples/setup.ts), and exporting just a few simple symbols. This reflects what might be a common scenario - a technical manager creates boilerplate for a bot, which is coded up by less technical employees.
 
 ## Parting words
 
