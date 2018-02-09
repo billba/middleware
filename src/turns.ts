@@ -65,7 +65,21 @@ export class TurnAdapter {
         request: Activity,
         handler: TurnHandler,
     ) {
-        const middlewares = this.middlewares
+        const middlewares = [
+            {
+                turn: async (turn, next) {
+                    await next();
+                    await turn.flushResponses();
+                }
+            },
+            ... this.middlewares,
+            {
+                turn: async (turn, next) {
+                    await toPromise(handler(turn));
+                    await next();
+                }
+            }
+        ]
             .map(normalizedMiddleware)
             .reverse();
 
@@ -102,10 +116,8 @@ export class TurnAdapter {
         await middlewares
             .reduce(
                 (next, middleware) => () => middleware.turn(turn, next),
-                () => toPromise(handler(turn))
+                () => Promise.resolve()
             )();
-        
-        await turn.flushResponses();
     }
 
     do (
