@@ -39,7 +39,9 @@ export class RegexpRecognizer {
 
         const re = this.res.find(re => re.regexp.test(turn.request.text));
 
-        if (re)
+        if (re) {
+            this.cache[turn.request.text] = re.intent;
             return re.intent;
+        }
     }
 }
