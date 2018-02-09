@@ -1,9 +1,9 @@
 import { Activity } from "botbuilder";
 import { Turn } from "../turns";
-import { TurnService } from "./TurnService";
+import { TurnCache } from "./TurnCache";
 import { simple, SimpleAPI } from './simple';
 
-export class SimpleService extends TurnService<SimpleAPI> {
+export class SimpleCache extends TurnCache<SimpleAPI> {
     get (
         turn: Turn,
     ): SimpleAPI {

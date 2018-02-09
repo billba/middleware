@@ -1,5 +1,4 @@
 import { Turn, Middleware } from '../turns';
-import { TurnService } from './TurnService';
 
 export interface RegExpArtifact {
     intent: string;

@@ -1,16 +1,16 @@
 import { Middleware, TurnAdapter, Turn, WithContext, GetContext } from '../turns';
 import { ConsoleAdapter } from 'botbuilder-node';
 import { SimpleAPI } from '../helpers/simple';
-import { SimpleService } from '../helpers/SimpleService';
+import { SimpleCache } from '../helpers/SimpleCache';
 
-const simpleService = new SimpleService();
+const simpleCache = new SimpleCache();
 
 class Yoify implements Middleware {
-    constructor(private simpleService: SimpleService) {
+    constructor(private simpleCache: SimpleCache) {
     }
 
     async turn (turn, next) {
-        const s = this.simpleService.get(turn);
+        const s = this.simpleCache.get(turn);
 
         s.reply('yo in');
         await next();
@@ -36,18 +36,18 @@ const app = new TurnAdapter(consoleAdapter,
     {
         async turn (turn, next) {
             await next();
-            simpleService.dispose(turn);
+            simpleCache.dispose(turn);
         }
     },
     toUpper,
-    new Yoify(simpleService),
+    new Yoify(simpleCache),
 );
 
 type Context = Turn & SimpleAPI;
 
 const getContext = GetContext<Context>(turn => ({
     ... turn,
-    ... simpleService.get(turn),
+    ... simpleCache.get(turn),
 }));
 
 const withContext = WithContext(getContext);

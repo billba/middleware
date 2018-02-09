@@ -1,5 +1,5 @@
 import { Turn, Middleware } from '../turns';
-import { AsyncTurnService } from './TurnService';
+import { AsyncTurnCache } from './TurnCache';
 import { IStorage } from './storage';
 
 export interface IState<Conversation = any, User = any> {
@@ -7,7 +7,7 @@ export interface IState<Conversation = any, User = any> {
     readonly user: User;
 }
 
-export class StateManager <Conversation = any, User = any> extends AsyncTurnService<IState<Conversation, User>> implements Middleware {
+export class StateManager <Conversation = any, User = any> extends AsyncTurnCache<IState<Conversation, User>> implements Middleware {
     constructor (
         private storage: IStorage
     ) {

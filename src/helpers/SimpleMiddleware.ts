@@ -1,9 +1,9 @@
 import { Activity } from "botbuilder";
 import { Turn, Middleware } from "../turns";
-import { TurnService } from "./TurnService";
-import { SimpleService } from './SimpleService';
+import { TurnCache } from "./TurnCache";
+import { SimpleCache } from './SimpleCache';
 
-export class SimpleMiddleware extends SimpleService implements Middleware {
+export class SimpleMiddleware extends SimpleCache implements Middleware {
     async turn (
         turn: Turn,
         next: () => Promise<void>,

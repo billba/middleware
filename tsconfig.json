@@ -15,7 +15,7 @@
         "./src/samples/basic.ts",
         "./src/samples/simple.ts",
         "./src/samples/context.ts",
-        "./src/samples/simpleService.ts",
+        "./src/samples/simpleCache.ts",
         "./src/samples/simpleMiddleware.ts",
         "./src/samples/recognizer.ts",
         "./src/samples/state.ts",

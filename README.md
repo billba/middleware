@@ -129,41 +129,41 @@ Some notes:
 * `yoify` is still working directly with the `simple` helper. You absolutely *could* author both your middleware and bot logic to share a single `Context` type and `getContext()` function. But it will be more common for middleware to be authored separately, and I want to emphasize that every piece of logic can do things its own way. We don't all have to agree on what a context looks like.
 * You can, as shown in this sample, just take a `Turn` and add functionality to it. But you actually have complete control. It's your object. You can call things whatever you want. Perhaps you have a less technical team -- your `Context` can just have a simple `reply()` function with no access to `responses` or `flushResponses()`.
 
-### TurnService
+### TurnCache
 
-`simple` is just a function that takes a `Turn` and returns an object. It's a little inefficient that `simple` is being called twice for the same turn, once in `getContext` and once in `yoify`. In a perfect world, we'd just create it once per turn and reuse it. There are many ways to do this, including a number of DI libraries. I wrote a very lightweight DI library called `TurnService` that allows you to:
+`simple` is just a function that takes a `Turn` and returns an object. It's a little inefficient that `simple` is being called twice for the same turn, once in `getContext` and once in `yoify`. In a perfect world, we'd just create it once per turn and reuse it. There are many ways to do this, including a number of DI libraries. I wrote a very lightweight caching library called `TurnCache` that allows you to:
 
 * request a value any number of times per turn, but only create it the first time. Subsequent calls will return a cached value.
 * dispose of the cached value, performing any cleanup required
 
-`TurnService` uses the `id` value of a `Turn` to make all its trains run on time.
+`TurnCache` uses the `id` value of a `Turn` to make all its trains run on time.
 
-** Please note that this is just one possible solution to this problem. A given developer might wish to use a different DI library, or a simple cache, or an entirely different approach. **
+** Please note that this is just one possible solution to this problem. A given developer might wish to use a DI library, or a simple cache, or an entirely different approach. **
 
-In [Sample 4: SimpleService](src/samples/simpleService.ts) we:
+In [Sample 4: SimpleCache](src/samples/simpleCache.ts) we:
 
-* create `simpleService`, an instance of a `TurnService` class called `SimpleService`, which wraps `simple()`
-* convert `yoify` into a class called `Yoify`, and pass `simpleService` into its constructor. We could have just closed over the global `simpleService`, but this way allows us to
+* create `simpleCache`, an instance of a `TurnCache` class called `SimpleCache`, which wraps `simple()`
+* convert `yoify` into a class called `Yoify`, and pass `simpleCache` into its constructor. We could have just closed over the global `simpleCache`, but this way allows us to
     * express the dependency more explicitly
     * move Yoify into another file, to be shared with other apps that need its mission-critical capabilities
-* in Yoify's `turn()` middleware function, call `simpleService.get(turn)`. This ends up calling `simple(turn)` and putting it in a cache.
-* in `getContext()`, call `simpleService.get(turn)`. This retrieves the value from the cache.
-* adds a piece of ad-hoc middleware that calls `simpleService.dispose(turn)` to clear the cache and free up that memory. Note that this middleware is listed first so that it is the last middleware run at the end of the turn.
+* in Yoify's `turn()` middleware function, call `simpleCache.get(turn)`. This ends up calling `simple(turn)` and putting it in a cache.
+* in `getContext()`, call `simpleCache.get(turn)`. This retrieves the value from the cache.
+* adds a piece of ad-hoc middleware that calls `simpleCache.dispose(turn)` to clear the cache and free up that memory. Note that this middleware is listed first so that it is the last middleware run at the end of the turn.
 
-That ad-hoc middleware is pretty ugly. It would be nice if `SimpleService` could also act as middleware, and just dispose of itself. Spoilers: it can!
+That ad-hoc middleware is pretty ugly. It would be nice if `SimpleCache` could also act as middleware, and just dispose of itself. Spoilers: it can!
 
-### TurnService & Middleware
+### TurnCache & Middleware
 
 In [Sample 5: SimpleMiddleware](src/samples/simpleMiddleware.ts) we:
 
-* change `simpleService` to `simpleMiddleware`, an instance of `SimpleMiddleware`, which extends `SimpleService` *and* `Middleware`
+* change `simpleCache` to `simpleMiddleware`, an instance of `SimpleMiddleware`, which extends `SimpleCache` *and* `Middleware`
 * replace the ad-hoc middleware with `simpleMiddleware`, so that it can clean up after itself.
 
-Note that we do not change `Yoify` at all. That's because `simpleMiddleware` inherits from `SimpleService` and therefore we can continue to pass it to anything expecting an instance of `SimpleService`.
+Note that we do not change `Yoify` at all. That's because `simpleMiddleware` inherits from `SimpleCache` and therefore we can continue to pass it to anything expecting an instance of `SimpleCache`.
 
-Now our code is looking clean again. Every piece of middleware could utilize `simpleService`, but `simple()` would only ever be called once.
+Now our code is looking clean again. Every piece of middleware could utilize `simpleCache`, but `simple()` would only ever be called once.
 
-It's important to emphasize that any number of DI frameworks or patterns could be used instead of `TurnService`. You don't have to use DI at all. You can write your code however you want. The point of this exercise was to demonstrate that it's easy to write middleware and bot logic that efficiently share access to multiple services without having to mutate a single context object on every turn.
+It's important to emphasize that any number of DI frameworks or patterns could be used instead of `TurnCache`. You don't have to use DI at all. You can write your code however you want. The point of this exercise was to demonstrate that it's easy to write middleware and bot logic that efficiently share access to multiple Caches without having to mutate a single context object on every turn.
 
 ### Recognizers
 
@@ -180,13 +180,13 @@ In [Sample 6: Recognizer](src/samples/recognizer.ts) we:
 
 State fits into this pattern nicely, and allows us to demonstrate:
 
-* the async version of `TurnService`, cleverly named `AsyncTurnService`
+* the async version of `TurnCache`, cleverly named `AsyncTurnCache`
 * a service cleaning up after itself. In this case, persisting the changed state.
 
 In [Sample 7: State](src/samples/state.ts) we:
 
 * create a type called `ConversationState` (this name is purely convention)
-* create `stateManager`, an instance of `StateManager<ConversationState>`, which extends both `AsyncTurnService` and `Middleware`, using an in-memory store
+* create `stateManager`, an instance of `StateManager<ConversationState>`, which extends both `AsyncTurnCache` and `Middleware`, using an in-memory store
 * add it to the middleware stack so that it can clean up after itself (crucially, persisting the updated state)
 * access `await stateManager.get(turn)` from a piece of ad-hoc middleware, which puts the current turn count into to the state
 * add a `state` property to `Context` and fill it in `getContext` using `await stateManager.get(turn)`
