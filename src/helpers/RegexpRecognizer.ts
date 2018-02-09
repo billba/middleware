@@ -33,15 +33,15 @@ export class RegexpRecognizer {
         if (turn.request.type !== 'message')
             return;
 
-        const intent = this.cache[turn.request.text];
-        if (intent)
-            return intent;
+        const utterance = turn.request.text;
 
-        const re = this.res.find(re => re.regexp.test(turn.request.text));
+        if (this.cache.hasOwnProperty(utterance))
+            return this.cache[utterance];
 
-        if (re) {
-            this.cache[turn.request.text] = re.intent;
-            return re.intent;
-        }
+        const re = this.res.find(re => re.regexp.test(utterance));
+        const intent = re && re.intent;
+
+        this.cache[utterance] = intent;
+        return intent;
     }
 }
