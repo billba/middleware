@@ -123,9 +123,11 @@ This is nice because the bot developer can pick whatever abstraction(s) they wan
 
 (`GetContext()` and `WithContext()` are simple helpers that make it a little easier to do this stuff, but they aren't necesssary.)
 
-Note that `yoify` is still working directly with the `simple` helper. You absolutely *could* author both your middleware and bot logic to share a single `Context` type and `getContext()` function. But it will be more common for middleware to be authored separately, and I want to emphasize that every piece of logic can do things its own way. We don't all have to agree on what a context looks like.
+Some notes:
 
-You can, as shown in this sample, just take a `Turn` and add functionality to it. But you actually have complete control. It's your object. You can call things whatever you want. Perhaps you have a less technical team -- your `Context` can just have a simple `reply()` function with no access to `responses` or `flushResponses()`.
+* In C# and Java (and maybe Python) you would instead create `Context` as a class, where the constructor is the "getContext" function.
+* `yoify` is still working directly with the `simple` helper. You absolutely *could* author both your middleware and bot logic to share a single `Context` type and `getContext()` function. But it will be more common for middleware to be authored separately, and I want to emphasize that every piece of logic can do things its own way. We don't all have to agree on what a context looks like.
+* You can, as shown in this sample, just take a `Turn` and add functionality to it. But you actually have complete control. It's your object. You can call things whatever you want. Perhaps you have a less technical team -- your `Context` can just have a simple `reply()` function with no access to `responses` or `flushResponses()`.
 
 ### TurnService
 
