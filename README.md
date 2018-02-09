@@ -1,10 +1,10 @@
 # Proposal for BotBuilder v4 Middleware/Context
 
-This repo represents a proposal to change to the way BotBuilder v4 handles middleware and "context". At its heart it is an abstract proposal, in that there are many ways it could be implemented. However in the interests of initiating a concrete conversation, this repo includes a strawman implementation and multiple samples. This implementation is not meant to be "production ready" but it should suffice to illustrate the spirit of the proposal.
+This repo represents a proposal to change to the way BotBuilder v4 handles middleware and "context". At its heart it is an abstract proposal, in that there are many ways it could be implemented. However in the interests of initiating a concrete conversation, this repo includes a strawman implementation and multiple samples. This implementation is not meant to be "production ready" but it should suffice to illustrate the spirit of the proposal. Some key details have no doubt been omitted or overly simplified, and so I ask for some generosity of spirit and flexibility of mind as you look through it.
 
 ## The Problem
 
-BotBuilder v4 is build on an `adapter`, which provides a function for sending `activities` from the bot to the channel, and the ability to register a callback to be run on each activity produced by the channel.
+BotBuilder v4 is built on an `ActivityAdapter`, which provides a function for sending `Activities` from the bot to the channel, and the ability to register a callback to be run on each activity produced by the channel.
 
 However this will frequently be too low-level for most developers. The `Bot` class introduces the notion of a `context` object created for each turn. It includes the incoming activity (request) and a batched approach to sending messages. A plugin architecture exists in the form of a middleware stack. A given piece of middleware is encouraged to expose functionality to the bot developer (and other middleware) by mutating the context, adding properties and/or methods as it sees fit. For example, the following code adds `context.hooray()`.
 
@@ -73,11 +73,11 @@ The functionality this adds above the base adapter is:
 * an `id` which is unique per turn (request). In a little while we will see where this is helpful
 * a batched approach to sending activities to the channel
 
-Note that request is not optional. In the case of a proactive turn, the request is an activity of type 'proactive'.
+Note that `request` is not optional. In the case of a proactive turn, `request` is an activity of type `'proactive'`.
 
 Why a batched approach? Because there are a number of channels that allow or essentially require multiple activities to be sent as a group. By starting with a batched approach as a foundation, it's easy to expose a non-batched API. It's harder to do it the other way around.
 
-This is still very low level. For instance, there is no `reply` function. That's because this is itself an opinion. Should it take just an activity?Or also text? Or just text? Should it be called "reply" or "send"? Or even "ask"? Should it be fluent, so that you can do `say("Hey there").ask("What's your name?")`? Should it be asynchronous so that you can wait for the message to be sent, or just contribute activities to the batch? Just as there are innumerous JavaScript libraries that help you make REST calls, there will be many approaches, each appealing to different developers and more or less relevant to different projects.
+This is still very low level. For instance, there is no `reply()` function. That's because this is itself an opinion. Should it take just an activity? Or also text? Or just text? Should it be called `reply` or `send`? Or even `ask`? Should it be fluent, so that you can do `say("Hey there").ask("What's your name?")`? Should it be asynchronous so that you can wait for the message to be sent, or just contribute activities to the batch? Just as there are innumerous JavaScript libraries that help you make REST calls, there will be many approaches, each appealing to different developers and more or less relevant to different projects.
 
 This illustrates the philosophy of a Turn, which is to provide the minimal foundation necessary to build even higher-level abstractions.
 
@@ -114,50 +114,50 @@ This is nice because the bot developer can pick whatever abstraction(s) they wan
 
 ### working with context
 
-[Sample 3: Context](src/samples/context.ts) takes the Simple sample and introduces the notion of a Context object by:
+[Sample 3: Context](src/samples/context.ts) takes the previous sample and introduces the notion of a context object by:
 
 * creating a type called `Context` (this is just a convention - call it anything you want)
-* creating a function called `getContext` that takes a Turn and transforms it into a Context
-* creating a function called `withContext` that allows you to take any function that takes a Turn and instead use a Context
-* splitting off an `echo()` helper function which takes a Context as an argument
+* creating a function called `getContext()` (convention) that takes a Turn and transforms it into a Context
+* creating a function called `withContext()` (convention) that allows you to take any function that takes a Turn and instead use a Context
+* splitting off an `echo()` helper function which takes a `Context` as an argument
 
-(GetContext and WithContext are simple helpers that make it a little easier to do this stuff, but they aren't necesssary.)
+(`GetContext()` and `WithContext()` are simple helpers that make it a little easier to do this stuff, but they aren't necesssary.)
 
-Note that `yoify` is still working directly with the `simple` helper. You absolutely *could* author both your middleware and bot logic to share a single `Context` type and `getContext` function. But it is will be more common for middleware to be authored separately, and I want to emphasize that every piece of logic can do things its own way. We don't all have to agree on what a context looks like.
+Note that `yoify` is still working directly with the `simple` helper. You absolutely *could* author both your middleware and bot logic to share a single `Context` type and `getContext()` function. But it will be more common for middleware to be authored separately, and I want to emphasize that every piece of logic can do things its own way. We don't all have to agree on what a context looks like.
 
-You can, as shown in this sample, just take a Turn and add functionality to it. But you actually have complete control. It's your object. You can call things whatever you want. Perhaps you have a less technical team -- your `Context` can just have a simple `reply()` function with no access to `responses` or `flushResponses()`.
+You can, as shown in this sample, just take a `Turn` and add functionality to it. But you actually have complete control. It's your object. You can call things whatever you want. Perhaps you have a less technical team -- your `Context` can just have a simple `reply()` function with no access to `responses` or `flushResponses()`.
 
 ### TurnService
 
-`simple` is just a function that takes a Turn and returns an object. It's a little inefficient that `simple` is being called twice for the same turn, once in `getContext` and once in `yoify`. In a perfect world, we'd just create it once per turn and reuse it. There are many ways to do this, including a number of DI libraries. I wrote a very lightweight DI library called `TurnService` that allows you to:
+`simple` is just a function that takes a `Turn` and returns an object. It's a little inefficient that `simple` is being called twice for the same turn, once in `getContext` and once in `yoify`. In a perfect world, we'd just create it once per turn and reuse it. There are many ways to do this, including a number of DI libraries. I wrote a very lightweight DI library called `TurnService` that allows you to:
 
 * request a value any number of times per turn, but only create it the first time. Subsequent calls will return a cached value.
 * dispose of the cached value, performing any cleanup required
 
-`TurnService` uses the `id` value of a Turn to make all its trains run on time.
+`TurnService` uses the `id` value of a `Turn` to make all its trains run on time.
 
 In [Sample 4: SimpleService](src/samples/simpleService.ts) we:
 
-* create `simpleService`, an instance of a `TurnService` class called `SimpleService`, which wraps `simple`
-* convert yoify into a class called Yoify, and pass `simpleService` into its constructor. We could have just closed over the global `simpleService`, but this allows us to
+* create `simpleService`, an instance of a `TurnService` class called `SimpleService`, which wraps `simple()`
+* convert `yoify` into a class called `Yoify`, and pass `simpleService` into its constructor. We could have just closed over the global `simpleService`, but this way allows us to
     * express the dependency more explicitly
-    * move Yoify into another file
-* in Yoify's `turn` middleware function, call `simpleService.get(turn)`. This ends up calling `simple(turn)` and putting it in a cache.
-* in getContext, call `simpleService.get(turn)`. This retrieves the value from the cache.
+    * move Yoify into another file, to be shared with other apps that need its mission-critical capabilities
+* in Yoify's `turn()` middleware function, call `simpleService.get(turn)`. This ends up calling `simple(turn)` and putting it in a cache.
+* in `getContext()`, call `simpleService.get(turn)`. This retrieves the value from the cache.
 * adds a piece of ad-hoc middleware that calls `simpleService.dispose(turn)` to clear the cache and free up that memory. Note that this middleware is listed first so that it is the last middleware run at the end of the turn.
 
-That ad-hoc middleware is pretty ugly. It would be nice if SimpleService could also act as middleware, and just dispose of itself. Spoilers: it can!
+That ad-hoc middleware is pretty ugly. It would be nice if `SimpleService` could also act as middleware, and just dispose of itself. Spoilers: it can!
 
 ### TurnService & Middleware
 
 In [Sample 5: SimpleMiddleware](src/samples/simpleMiddleware.ts) we:
 
-* change `simpleService` to `simpleMiddleware`, an instance of SimpleMiddleware, which extends SimpleService *and* implements the `turn` middleware function
+* change `simpleService` to `simpleMiddleware`, an instance of `SimpleMiddleware`, which extends `SimpleService` *and* `Middleware`
 * replace the ad-hoc middleware with `simpleMiddleware`, so that it can clean up after itself.
 
 Note that we do not change `Yoify` at all. That's because `simpleMiddleware` inherits from `SimpleService` and therefore we can continue to pass it to anything expecting an instance of `SimpleService`.
 
-Now our code is looking clean again. Every piece of middleware could utilize simpleService, but `simple` would only ever be called once.
+Now our code is looking clean again. Every piece of middleware could utilize `simpleService`, but `simple()` would only ever be called once.
 
 It's important to emphasize that any number of DI frameworks or patterns could be used instead of `TurnService`. You don't have to use DI at all. You can write your code however you want. The point of this exercise was to demonstrate that it's easy to write middleware and bot logic that efficiently share access to multiple services without having to mutate a single context object on every turn.
 
@@ -165,23 +165,23 @@ It's important to emphasize that any number of DI frameworks or patterns could b
 
 Recognizers are a great example of code that you want to run, at most, once per turn, so it fits perfectly into this pattern. In [Sample 6: Recognizer](src/samples/recognizer.ts) we:
 
-* create `regexpRecognizer`, an instance of `RegexpRecognizer`, which is both a `TurnService` and `Middleware`
+* create `regexpRecognizer`, an instance of `RegexpRecognizer`, which extends both `TurnService` and `Middleware`
 * add it to the middleware stack so that it can clean up after itself
 * access `regexpRecognizer.recognize()` from a piece of ad-hoc middleware, which shouts out any passing intents
-* add an intent property to `Context` and fill it in `getContext` using `regexpRecognizer.recognize()`
+* add an `intent` property to `Context` and fill it in `getContext` using `regexpRecognizer.recognize()`
 * check `context.intent` in `echo()` and act accordingly on any introductions
 
 ### State
 
 State fits into this pattern nicely, and allows us to demonstrate:
 
-* the async version of TurnService
+* the async version of `TurnService`, cleverly named `AsyncTurnService`
 * a service cleaning up after itself. In this case, persisting the changed state.
 
 In [Sample 7: State](src/samples/state.ts) we:
 
 * create a type called `ConversationState` (this name is purely convention)
-* create `stateManager`, an instance of `StateManager<ConversationState>`, which is both an `AsyncTurnService` and `Middleware`, using an in-memory store
+* create `stateManager`, an instance of `StateManager<ConversationState>`, which extends both `AsyncTurnService` and `Middleware`, using an in-memory store
 * add it to the middleware stack so that it can clean up after itself (crucially, persisting the updated state)
 * access `await stateManager.get(turn)` from a piece of ad-hoc middleware, which puts the current turn count into to the state
 * add a `state` property to `Context` and fill it in `getContext` using `await stateManager.get(turn)`
@@ -193,7 +193,7 @@ We'd like access to all of the above goodness for proactive messages too.
 
 In [Sample 8: Proactive](src/samples/proactive.ts) we:
 
-* add another intent check to `echo()` -- on 'start' we begin an endless loop which runs a proactive session every three seconds
+* add another intent check to `echo()` -- on `'start'` we begin an endless loop which runs a proactive session every three seconds.
 
 When creating a proactive session, you must pass a source activity. This can be any request from the channel. The relevant address fields are copied from this activity into a new `Activity` of type `proactive`, and are used when the proactive session wishes to "reply" to a given user.
 
@@ -201,17 +201,17 @@ Note that the proactive session runs through all the same middleware. If you wan
 
 Also note that each proactive session gets its own turn ID, which is crucial.
 
-Finally, in this example, the proactive session shares `Context` definition and initialization with the `onRequest` logic, but it doesn't need to. In fact, they could be totally different, allowing your app to share proactive logic with other apps without having to agree on what a `Context` looks like.
+Finally, in this example, the proactive session shares a `Context` definition and initialization with the `onRequest` logic, but it doesn't need to. In fact, they could be totally different, allowing your app to share proactive logic with other apps without having to agree on what a `Context` looks like.
 
 ### Cleanup
 
-This sample has gotten a little busy. But most of the code is about setting up the bot. The actual bot logic is quite simple. It's quite simple to separate the boilerplate setup code from the bot logic.
+This sample has gotten a little busy. But most of the code is about setting up the bot. The actual bot logic is quite simple. It's straightforward to separate the boilerplate setup code from the bot logic.
 
 In [Sample 9: Cleanup](src/samples/cleanup.ts) we do just that, moving the setup code into [its own file](src/samples/setup.ts), and exporting just a few simple symbols. This reflects what might be a common scenario - a technical manager creates boilerplate for a bot, which is coded up by less technical employees.
 
 ## Parting words
 
-This implementation is explicitly a strawman - a concrete example that we can all look at and discuss as we search for the best solution to the problem listed above. Some key details have no doubt been omitted or overly simplified, and so I ask for some generosity of spirit and flexibility of mind as you look through it.
+This implementation is explicitly a strawman - a proof of concept that we can all look at and discuss as we search for the best solution to the problem listed above. I hope it helps move the conversation forward.
 
 Thanks,
 Bill
