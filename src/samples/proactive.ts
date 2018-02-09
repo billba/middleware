@@ -53,7 +53,6 @@ consoleAdapter.listen();
 const app = new TurnAdapter(consoleAdapter,
     stateManager,
     simpleMiddleware,
-    regexpRecognizer,
     toUpper,
     new Yoify(simpleMiddleware),
     {

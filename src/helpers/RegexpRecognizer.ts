@@ -6,23 +6,22 @@ export interface RegExpArtifact {
 }
 
 interface RE {
-    regExp: RegExp;
+    regexp: RegExp;
     intent: string;
 }
 
-export class RegexpRecognizer extends TurnService<string> implements Middleware {
+export class RegexpRecognizer {
     private res: RE[] = [];
-
-    constructor() {
-        super();
-    }
+    private cache: {
+        [utterance: string]: string;
+    } = {}
 
     add (
-        regExp: RegExp,
+        regexp: RegExp,
         intent?: string
     ) {
         this.res.push({
-            regExp,
+            regexp,
             intent
         });
 
@@ -32,27 +31,16 @@ export class RegexpRecognizer extends TurnService<string> implements Middleware 
     recognize (
         turn: Turn,
     ) {
-        return this._get(turn, () => {
-            const request = turn.request;
-            if (request.type === 'message') {
-                const re = this.res.find(re => re.regExp.test(request.text));
+        if (turn.request.type !== 'message')
+            return;
 
-                if (re)
-                    return {
-                        artifact: re.intent
-                    }
-            }
-        });
-    }
+        const intent = this.cache[turn.request.text];
+        if (intent)
+            return intent;
 
-    dispose (
-        turn: Turn,
-    ) {
-        return this._dispose(turn);
-    }
+        const re = this.res.find(re => re.regexp.test(turn.request.text));
 
-    async turn (turn: Turn, next: () => Promise<void>) {
-        await next();
-        this.dispose(turn);
+        if (re)
+            return re.intent;
     }
 }

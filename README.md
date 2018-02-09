@@ -136,6 +136,8 @@ You can, as shown in this sample, just take a `Turn` and add functionality to it
 
 `TurnService` uses the `id` value of a `Turn` to make all its trains run on time.
 
+** Please note that this is just one possible solution to this problem. A given developer might wish to use a different DI library, or a simple cache, or an entirely different approach. **
+
 In [Sample 4: SimpleService](src/samples/simpleService.ts) we:
 
 * create `simpleService`, an instance of a `TurnService` class called `SimpleService`, which wraps `simple()`
@@ -163,10 +165,11 @@ It's important to emphasize that any number of DI frameworks or patterns could b
 
 ### Recognizers
 
-Recognizers are a great example of code that you want to run, at most, once per turn, so it fits perfectly into this pattern. In [Sample 6: Recognizer](src/samples/recognizer.ts) we:
+At first glace Recognizers seem like a great example of code that you want to run, at most, once per turn. But in fact a cache of recognized utterances should span turns. As a result, there is no cleanup necessary.
 
-* create `regexpRecognizer`, an instance of `RegexpRecognizer`, which extends both `TurnService` and `Middleware`
-* add it to the middleware stack so that it can clean up after itself
+In [Sample 6: Recognizer](src/samples/recognizer.ts) we:
+
+* create `regexpRecognizer`, an instance of `RegexpRecognizer`, which implements its own cache
 * access `regexpRecognizer.recognize()` from a piece of ad-hoc middleware, which shouts out any passing intents
 * add an `intent` property to `Context` and fill it in `getContext` using `regexpRecognizer.recognize()`
 * check `context.intent` in `echo()` and act accordingly on any introductions
