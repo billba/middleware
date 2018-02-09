@@ -54,7 +54,7 @@ As mentioned above, an adapter provides all that is necessary for communicting w
 
 ### Turn
 
-This implementation focuses on the concept of a "turn", which is defined as the lifecycle of a request (incoming activity or "proactice" session).
+This implementation focuses on the concept of a "turn", which is defined as the lifecycle of a request (incoming activity or "proactive" session).
 
 A turn is served by a class called `Turn` which is essentially a base context (I'm saving the word "context" for later):
 
