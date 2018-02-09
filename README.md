@@ -187,6 +187,8 @@ In [Sample 7: State](src/samples/state.ts) we:
 * add a `state` property to `Context` and fill it in `getContext` using `await stateManager.get(turn)`
 * utilize `context.state.conversation.count` in `echo()`
 
+Something that is very appealing about this approach is that there is no mystery about how the context is formed. It's all right there in the open.
+
 ### Proactive sessions
 
 We'd like access to all of the above goodness for proactive messages too.
