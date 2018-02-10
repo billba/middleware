@@ -10,11 +10,11 @@ import { MemoryStorage } from '../helpers/MemoryStorage';
 const simpleMiddleware = new SimpleMiddleware();
 
 class Yoify implements Middleware {
-    constructor(private simpleService: SimpleCache) {
+    constructor(private simpleCache: SimpleCache) {
     }
 
     async turn (turn, next) {
-        const s = this.simpleService.get(turn);
+        const s = this.simpleCache.get(turn);
 
         s.reply('yo in');
         await next();
