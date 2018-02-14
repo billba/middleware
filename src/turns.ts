@@ -67,16 +67,15 @@ export class TurnAdapter {
     ) {
         const middlewares = [
             {
-                turn: async (turn, next) {
+                async turn (turn, next) {
                     await next();
                     await turn.flushResponses();
                 }
             },
             ... this.middlewares,
             {
-                turn: async (turn, next) {
+                async turn (turn, next) {
                     await toPromise(handler(turn));
-                    await next();
                 }
             }
         ]
@@ -142,14 +141,11 @@ export class TurnAdapter {
     }
 }
 
-export const GetContext = <Context> (
-    getContext: (turn: Turn) => Promiseable<Context>
-) => (turn: Turn) => toPromise(getContext(turn));
-
-export const WithContext = <Context> (
-    getContext: (turn: Turn) => Promiseable<Context>
-) => (
-    handler: (context: Context) => Promiseable<any>,
-) => async (
-    turn: Turn,
-) => toPromise(handler(await toPromise(getContext(turn))));
+export const contextHelpers = <Context> (
+    getContext: (
+        turn: Turn
+    ) => Promiseable<Context>
+) => ({
+    getContext: (turn: Turn) => toPromise(getContext(turn)),
+    withContext: (handler: (context: Context) => Promiseable<any>) => async (turn: Turn) => toPromise(handler(await toPromise(getContext(turn))))
+});

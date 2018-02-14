@@ -1,4 +1,4 @@
-import { Middleware, TurnAdapter, Turn, WithContext, GetContext } from '../turns';
+import { Middleware, TurnAdapter, Turn, contextHelpers } from '../turns';
 import { ConsoleAdapter } from 'botbuilder-node';
 import { SimpleAPI } from '../helpers/simple';
 import { SimpleCache } from '../helpers/SimpleCache';
@@ -85,14 +85,12 @@ export type Context = Turn & SimpleAPI & {
     intent: string;
 }
 
-const getContext = GetContext<Context>(async turn => ({
+const { withContext } = contextHelpers<Context>(async turn => ({
     ... turn,
     ... simpleMiddleware.get(turn),
     state: await stateManager.get(turn),
     intent: regexpRecognizer.recognize(turn),
 }));
-
-const withContext = WithContext(getContext);
 
 export const onRequest = (handler: (c: Context) => Promiseable<any>) => app.onRequest(withContext(handler));
 

@@ -1,4 +1,4 @@
-import { Middleware, TurnAdapter, Turn, WithContext, GetContext } from '../turns';
+import { Middleware, TurnAdapter, Turn, contextHelpers } from '../turns';
 import { ConsoleAdapter } from 'botbuilder-node';
 import { simple, SimpleAPI } from '../helpers/Simple';
 
@@ -33,12 +33,10 @@ const app = new TurnAdapter(consoleAdapter,
 
 type Context = Turn & SimpleAPI;
 
-const getContext = GetContext<Context>(turn => ({
+const { withContext } = contextHelpers<Context>(turn => ({
     ... turn,
     ... simple(turn),
 }));
-
-const withContext = WithContext(getContext);
 
 app.onRequest(withContext(context => {
     if (context.request.type === 'message')

@@ -117,15 +117,14 @@ This is nice because the bot developer can pick whatever abstraction(s) they wan
 [Sample 3: Context](src/samples/context.ts) takes the previous sample and introduces the notion of a context object by:
 
 * creating a type called `Context` (this is just a convention - call it anything you want)
-* creating a function called `getContext()` (convention) that takes a Turn and transforms it into a Context
-* creating a function called `withContext()` (convention) that allows you to take any function that takes a Turn and instead use a Context
+* creating a function that takes a `Turn` and transforms it into a Context
+* creating that function to create another function called `withContext()` that allows you to take any function that takes a `Turn` and instead use a `Context`
 * splitting off an `echo()` helper function which takes a `Context` as an argument
-
-(`GetContext()` and `WithContext()` are simple helpers that make it a little easier to do this stuff, but they aren't necesssary.)
 
 Some notes:
 
-* In C# and Java (and maybe Python) you would instead create `Context` as a class, where the "getContext" function becomes the class constructor. Of course you could do that in TypeScript/JavaScript as well, but it's so much easier the way I show it here!
+* a `contextHelpers` function is provided as a convenience, but there's no reason you can't build your own `withContext` function.
+* In C# and Java (and maybe Python) it would be more idiomatic to do this by creating a `Context` class.
 * `yoify` is still working directly with the `simple` helper. You absolutely *could* author both your middleware and bot logic to share a single `Context` type and `getContext()` function. But it will be more common for middleware to be authored separately, and I want to emphasize that every piece of logic can do things its own way. We don't all have to agree on what a context looks like.
 * You can, as shown in this sample, just take a `Turn` and add functionality to it. But you actually have complete control. It's your object. You can call things whatever you want. Perhaps you have a less technical team -- your `Context` can just have a simple `reply()` function with no access to `responses` or `flushResponses()`.
 
