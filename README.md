@@ -32,7 +32,36 @@ The larger problem is that this approach encourages hardcoded dependencies withi
 
 These hardcoded dependencies, only enforced at runtime, means that developers will have to rely on documentation and trial and error.
 
-Ultimately the result of all this will be a fragile web of dependencies, which will not make for a happy ecosystem.
+Ultimately the result of all this will be a fragile web of dependencies, which will not make for a happy ecosystem. Here are two concrete examples:
+
+#### Missing Dependencies
+
+Given:
+
+```ts
+bot
+    .use(Y)
+    .onReceive(myBotLogic)
+```
+
+Let's say `Y` depends on some other middleware `X` having modified context. If I didn't read the docs (or the code), there's no way to know this. It is only discoverable at runtime. And if `Y` only uses this dependency in unusual circumstances, it may not show up in everyday testing.
+
+#### Removing Dependencies
+
+Given:
+
+```ts
+bot
+    .use(A)
+    .use(B)
+    ...
+    .use(Y)
+    .use(Z)
+    .onReceive(myBotLogic)
+```
+
+Is it safe to remove `A`? How would I know? Again, my testing might not show the problem. I have to read the docs and/or code for `B` through `Z`, and of course `myBotLogic`.
+
 
 ### Testing
 
