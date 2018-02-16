@@ -4,6 +4,10 @@ import { TurnCache } from "./TurnCache";
 import { simple, SimpleAPI } from './simple';
 
 export class SimpleCache extends TurnCache<SimpleAPI> {
+    constructor() {
+        super("Microsoft.Simple");
+    }
+
     get (
         turn: Turn,
     ): SimpleAPI {

@@ -62,7 +62,6 @@ bot
 
 Is it safe to remove `A`? How would I know? Again, my testing might not show the problem. I have to read the docs and/or code for `B` through `Z`, and of course `myBotLogic`.
 
-
 ### Testing
 
 Hardcoded dependencies mean that testing is that much harder. To test Y means constructing a mocked context containing every dependency of Y.
@@ -95,12 +94,17 @@ export interface Turn {
 
     responses: Activity[];
     flushResponses: FlushResponses;
+
+    _get <T = any> (key: string): T;
+    _set <T = any>(key: string, value: T): void;
+    _delete(key: string): void;
 }
 ```
 
 The functionality this adds above the base adapter is:
 * an `id` which is unique per turn (request). In a little while we will see where this is helpful
 * a batched approach to sending activities to the channel
+* a way to cache values across the lifetime of a turn
 
 Note that `request` is not optional. In the case of a proactive turn, `request` is an activity of type `'proactive'`.
 
@@ -158,20 +162,17 @@ Some notes:
 * You can, as shown in this sample, just take a `Turn` and add functionality to it. But you actually have complete control. It's your object. You can call things whatever you want. Perhaps you have a less technical team -- your `Context` can just have a simple `reply()` function with no access to `responses` or `flushResponses()`.
 * you can also use this pattern to utilize a `Context` within your middleware.
 
-### TurnCache
+### turn-based cache
 
-`simple` is just a function that takes a `Turn` and returns an object. It's a little inefficient that `simple` is being called twice for the same turn, once in `getContext` and once in `yoify`. In a perfect world, we'd just create it once per turn and reuse it. There are many ways to do this, including a number of DI libraries. I wrote a very lightweight caching library called `TurnCache` that allows you to:
+`simple` is just a function that takes a `Turn` and returns an object. It's a little inefficient that `simple` is being called twice for the same turn, once in `getContext` and once in `yoify`. In a perfect world, we'd just create it once per turn and reuse it. There are many ways to do this, but it's easy to do using the `_get`, `_set`, and `_delete` methods that are part of every `Turn`.
 
-* request a value any number of times per turn, but only create it the first time. Subsequent calls will return a cached value.
-* dispose of the cached value, performing any cleanup required
+(These are low-level primitives, so I wrote a class called `TurnCache` that makes it easier to build things like this.)
 
-`TurnCache` uses the `id` value of a `Turn` to make all its trains run on time.
-
-** Please note that this is just one possible solution to this problem. A given developer might wish to use a DI library, or a simple cache, or an entirely different approach. **
+** Please note that this is just one possible solution to this problem. A given developer might wish to use a DI library, or a simple cache, or an entirely different approach.**
 
 In [Sample 4: SimpleCache](src/samples/simpleCache.ts) we:
 
-* create `simpleCache`, an instance of a `TurnCache` class called `SimpleCache`, which wraps `simple()`
+* create `simpleCache`, which extends `TurnCache` and wraps `simple()`
 * convert `yoify` into a class called `Yoify`, and pass `simpleCache` into its constructor. We could have just closed over the global `simpleCache`, but this way allows us to
     * express the dependency more explicitly
     * move Yoify into another file, to be shared with other apps that need its mission-critical capabilities
@@ -190,9 +191,9 @@ In [Sample 5: SimpleMiddleware](src/samples/simpleMiddleware.ts) we:
 
 Note that we do not change `Yoify` at all. That's because `simpleMiddleware` inherits from `SimpleCache` and therefore we can continue to pass it to anything expecting an instance of `SimpleCache`.
 
-Now our code is looking clean again. Every piece of middleware could utilize `simpleCache`, but `simple()` would only ever be called once.
+Now our code is looking clean again. Every piece of middleware could utilize `simpleCache`, but `simple()` is only called once per turn.
 
-It's important to emphasize that any number of DI frameworks or patterns could be used instead of `TurnCache`. You don't have to use DI at all. You can write your code however you want. The point of this exercise was to demonstrate that it's easy to write middleware and bot logic that efficiently share access to multiple Caches without having to mutate a single context object on every turn.
+It's important to emphasize that any number of DI frameworks or patterns could be used instead of `TurnCache` or the `Turn` cache primitives. You don't have to use DI at all. You can write your code however you want. The point of this exercise was to demonstrate that it's easy to write middleware and bot logic that efficiently share access to multiple Caches without having to mutate a single context object on every turn.
 
 ### Recognizers
 

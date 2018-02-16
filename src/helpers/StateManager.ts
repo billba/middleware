@@ -11,7 +11,7 @@ export class StateManager <Conversation = any, User = any> extends AsyncTurnCach
     constructor (
         private storage: IStorage
     ) {
-        super();
+        super("Microsoft.StateManager");
     }
 
     private static keyFromTurn(turn: Turn) {

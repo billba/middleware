@@ -6,17 +6,31 @@ export interface AsyncTurnCacheResult<T> {
     dispose?: () => Promise<void>;
 }
 
-export abstract class AsyncTurnCache <T> {
-    protected cache: Record<string, AsyncTurnCacheResult<T>> = {};
+abstract class BaseCache {
+    constructor(
+        private key: string,
+    ) {
+    }
 
-    constructor() {
+    protected _key(
+        turn: Turn
+    ) {
+        return `${this.key}:${turn.id}`;
+    }
+}
+
+export abstract class AsyncTurnCache <T> extends BaseCache {
+    constructor(
+        key: string,
+    ) {
+        super(key);
     }
 
     protected _get (
         turn: Turn,
         getter: () => Promiseable<AsyncTurnCacheResult<T>>
     ) {
-        let turnResult = this.cache[turn.id];
+        let turnResult = turn._get<AsyncTurnCacheResult<T>>(this._key(turn));
 
         return turnResult
             ? Promise.resolve(turnResult.artifact)
@@ -35,7 +49,7 @@ export abstract class AsyncTurnCache <T> {
                     } as AsyncTurnCacheResult<T>
                 )
                 .then(t2 => {
-                    this.cache[turn.id] = t2;
+                    turn._set(this._key(turn), t2);
                     return t2.artifact;
                 });
     }
@@ -43,12 +57,12 @@ export abstract class AsyncTurnCache <T> {
     protected _dispose (
         turn: Turn,
     ) {
-        let turnResult = this.cache[turn.id];
+        let turnResult = turn._get<AsyncTurnCacheResult<T>>(this._key(turn));
 
         return turnResult
             ? turnResult.dispose()
                 .then(() => {
-                    delete this.cache[turn.id];
+                    turn._delete(this._key(turn))
                 })
             : Promise.resolve();
     }
@@ -59,17 +73,18 @@ export interface TurnCacheResult<T> {
     dispose?: () => void;
 }
 
-export abstract class TurnCache <T> {
-    protected cache: Record<string, TurnCacheResult<T>> = {};
-
-    constructor() {
+export abstract class TurnCache <T> extends BaseCache {
+    constructor(
+        key: string,
+    ) {
+        super(key);
     }
 
     protected _get (
         turn: Turn,
         getter: () => TurnCacheResult<T>
     ) {
-        let turnResult = this.cache[turn.id];
+        let turnResult = turn._get<TurnCacheResult<T>>(this._key(turn));
 
         if (!turnResult) {
             turnResult = getter();
@@ -79,7 +94,7 @@ export abstract class TurnCache <T> {
                 }
             if (!turnResult.dispose)
                 turnResult.dispose = () => {};
-            this.cache[turn.id] = turnResult;
+            turn._set(this._key(turn), turnResult);
         }
 
         return turnResult.artifact;
@@ -88,11 +103,11 @@ export abstract class TurnCache <T> {
     protected _dispose (
         turn: Turn,
     ) {
-        let turnResult = this.cache[turn.id];
+        let turnResult = turn._get<TurnCacheResult<T>>(this._key(turn));
 
         if (turnResult) {
             turnResult.dispose();
-            delete this.cache[turn.id];
+            turn._delete(this._key(turn));
         }
     }
 }

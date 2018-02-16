@@ -10,6 +10,10 @@ export interface Turn {
 
     responses: Activity[];
     flushResponses: FlushResponses;
+
+    _get <T = any> (key: string): T;
+    _set <T = any> (key: string, value: T): void;
+    _delete (key: string): void;
 }
 
 export type PostMiddleware = (
@@ -87,17 +91,31 @@ export class TurnAdapter {
             .toString();
         
         const responses: Activity[] = [];
+        const cache: {
+           [key: string]: any
+        } = {};
+        const _get = (key: string) => cache[key];
+        const _set = (key: string, value: any) => {
+            cache[key] = value;
+        }
+        const _delete = (key: string) => delete cache[key];
 
         const turn: Turn = {
             id,
             request,
             responses,
+            _get,
+            _set,
+            _delete,
             flushResponses: middlewares
                 .reduce<FlushResponses>(
                     (flushResponses, middleware) => () => middleware.post({
                         id,
                         request,
                         responses,
+                        _get,
+                        _set,
+                        _delete,
                         flushResponses
                     }),
                     () => responses.length > 0
